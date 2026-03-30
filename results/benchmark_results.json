@@ -1,0 +1,56 @@
+{
+  "dataset": "datasets\\benchmark_from_tests.jsonl",
+  "sample_count": 105,
+  "tools": [
+    {
+      "tool": "Semantic Firewall",
+      "status": "ok",
+      "errors": 0,
+      "latency_ms": {
+        "avg": 781.0,
+        "p95": 1571.94
+      },
+      "metrics": {
+        "tp": 54,
+        "fp": 6,
+        "tn": 27,
+        "fn": 18,
+        "precision": 0.9,
+        "recall": 0.75,
+        "f1_score": 0.8182,
+        "accuracy": 0.7714
+      }
+    },
+    {
+      "tool": "Regex Heuristic Baseline",
+      "status": "ok",
+      "errors": 0,
+      "latency_ms": {
+        "avg": 0.41,
+        "p95": 0.12
+      },
+      "metrics": {
+        "tp": 13,
+        "fp": 0,
+        "tn": 33,
+        "fn": 59,
+        "precision": 1.0,
+        "recall": 0.1806,
+        "f1_score": 0.3059,
+        "accuracy": 0.4381
+      }
+    },
+    {
+      "tool": "LLM Guard",
+      "status": "skipped_not_installed"
+    },
+    {
+      "tool": "Rebuff",
+      "status": "skipped_not_installed"
+    },
+    {
+      "tool": "Guardrails AI",
+      "status": "skipped_not_installed"
+    }
+  ]
+}

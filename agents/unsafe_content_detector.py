@@ -2,7 +2,7 @@ import re
 import os
 import json
 from dataclasses import dataclass
-from typing import List
+from typing import List, Dict, Tuple
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -34,9 +34,10 @@ class UnsafeContentDetectorAgent:
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         self.model = "llama-3.3-70b-versatile"
         self.confidence_threshold = 0.5
+        self.regex_confidence = 0.80
 
-        # ── Regex pre-screening ────────────────────────────────────────────────
-        self.quick_patterns = {
+        # ── Regex pre-screening ───────────────────────────────────────────────
+        self.quick_patterns: Dict[str, Tuple[str, str, int]] = {
 
             # Violence & Threats
             "explicit_violence": (
@@ -55,7 +56,7 @@ class UnsafeContentDetectorAgent:
             ),
             "mass_violence": (
                 r'\b(mass (shooting|killing|murder|casualt)'
-                r'|how to (make|build|create) a (bomb|explosive|weapon)'
+                r'|how (do i|to) (make|build|create) (a )?(bomb|explosive|weapon)'
                 r'|(school|church|mosque|temple|concert) (shooting|attack|bombing))\b',
                 "Mass violence planning or glorification",
                 4
@@ -72,6 +73,8 @@ class UnsafeContentDetectorAgent:
             "suicide_methods": (
                 r'\b(how to (commit suicide|kill myself|end my life|take my own life)'
                 r'|best (method|way|means) (of|to) (suicide|die|end it)'
+                r'|best .* to commit suicide'
+                r'|most painless way to commit suicide'
                 r'|painless (way|method) to (die|suicide|end))\b',
                 "Suicide method request",
                 4
@@ -105,7 +108,7 @@ class UnsafeContentDetectorAgent:
                 r'\b((all|those) (jews?|muslims?|christians?|blacks?|whites?|asians?|hispanics?)'
                 r'\s+(are|should|deserve|must|need to)\b'
                 r'|(racial|ethnic|religious) (slur|slurs?|epithet)'
-                r'|white (supremac|nationalist|power)'
+                r'|white (supremacy|supremacist|nationalist|power)'
                 r'|(exterminate|eliminate|eradicate|genocide).{0,30}(race|religion|group|people))\b',
                 "Hate speech or discriminatory content",
                 4
@@ -121,13 +124,13 @@ class UnsafeContentDetectorAgent:
 
             # Weapons & Dangerous Items
             "weapons_manufacturing": (
-                r'\b(how to (make|build|create|synthesize|manufacture)'
+                r'\b(how (do i|to) (make|build|create|synthesize|manufacture)'
                 r'.{0,30}(gun|weapon|explosive|bomb|grenade|knife|poison|toxin|nerve agent))\b',
                 "Weapon manufacturing instructions",
                 4
             ),
             "drug_manufacturing": (
-                r'\b(how to (make|cook|synthesize|manufacture|produce)'
+                r'\b(how (do i|to) (make|cook|synthesize|manufacture|produce)'
                 r'.{0,30}(meth|methamphetamine|heroin|cocaine|fentanyl|lsd|mdma|ecstasy))\b',
                 "Drug manufacturing instructions",
                 4
@@ -188,9 +191,21 @@ class UnsafeContentDetectorAgent:
                 3
             ),
         }
+        
+        # Compile regex patterns once at initialization for performance
+        self.compiled_patterns: Dict[str, Tuple[re.Pattern, str, int]] = {}
+        for content_type, (pattern, description, weight) in self.quick_patterns.items():
+            try:
+                self.compiled_patterns[content_type] = (
+                    re.compile(pattern, re.IGNORECASE | re.DOTALL),
+                    description,
+                    weight
+                )
+            except re.error as e:
+                print(f"[UnsafeContentDetector] Failed to compile pattern '{content_type}': {e}")
 
         # ── LLM system prompt ──────────────────────────────────────────────────
-        self.system_prompt = """You are a content safety expert specializing in detecting harmful, dangerous, and policy-violating content in AI system inputs and outputs.
+        self.system_prompt: str = """You are a content safety expert specializing in detecting harmful, dangerous, and policy-violating content in AI system inputs and outputs.
 
 Your job is to analyze a given text and identify if it contains any of the following unsafe content categories:
 
@@ -231,9 +246,36 @@ Important rules:
 - ONLY flag content that could directly enable real-world harm or violates clear ethical boundaries
 - Be precise — do NOT over-flag normal conversation"""
 
+    def _truncate_text(self, text: str, max_length: int) -> Tuple[str, bool]:
+        """Truncate text if it exceeds max length.
+        
+        Args:
+            text: Input text
+            max_length: Maximum length before truncation
+            
+        Returns:
+            Tuple of (potentially truncated text, was_truncated flag)
+        """
+        if len(text) > max_length:
+            return text[:max_length], True
+        return text, False
+
     # ── Severity helpers ───────────────────────────────────────────────────────
 
     def _calculate_severity(self, matched: List[UnsafeMatch]) -> str:
+        """Calculate overall severity based on matched content types and weights.
+        
+        CRITICAL: weight 4 content found (violence, CSAM, hate speech, etc.)
+        HIGH: weight 3 content (cybercrime, misinformation, phishing)
+        MEDIUM: weight 2 content
+        LOW: weight 1 content
+        
+        Args:
+            matched: List of detected unsafe content items
+            
+        Returns:
+            Severity level (NONE, LOW, MEDIUM, HIGH, CRITICAL)
+        """
         if not matched:
             return "NONE"
         max_weight = max(m.severity_weight for m in matched)
@@ -246,28 +288,41 @@ Important rules:
         else:
             return "LOW"
 
-    # ── Regex pre-screen ───────────────────────────────────────────────────────
+    # ── Regex pre-screen ──────────────────────────────────────────────────────
 
     def _regex_prescreen(self, text: str) -> List[UnsafeMatch]:
+        """Fast regex pre-screening to detect obvious unsafe content patterns.
+        
+        Args:
+            text: Input text to scan
+            
+        Returns:
+            List of detected unsafe content matches
+        """
         matches = []
-        for content_type, (pattern, description, weight) in self.quick_patterns.items():
-            try:
-                found = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-                if found:
-                    matches.append(UnsafeMatch(
-                        content_type=content_type,
-                        description=description,
-                        confidence=0.80,
-                        evidence=found.group(0)[:100],
-                        severity_weight=weight
-                    ))
-            except re.error:
-                continue
+        for content_type, (compiled_pattern, description, weight) in self.compiled_patterns.items():
+            found = compiled_pattern.search(text)
+            if found:
+                matches.append(UnsafeMatch(
+                    content_type=content_type,
+                    description=description,
+                    confidence=self.regex_confidence,
+                    evidence=found.group(0)[:100],
+                    severity_weight=weight
+                ))
         return matches
 
     # ── LLM detection ─────────────────────────────────────────────────────────
 
     def _llm_detect(self, text: str) -> List[UnsafeMatch]:
+        """LLM-based semantic analysis for sophisticated unsafe content.
+        
+        Args:
+            text: Input text to analyze
+            
+        Returns:
+            List of detected unsafe content matches from LLM analysis
+        """
         matches = []
         try:
             response = self.client.chat.completions.create(
@@ -300,17 +355,30 @@ Important rules:
                             severity_weight=4 if confidence >= 0.85 else 3
                         ))
 
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as e:
+            # LLM returned non-JSON — log with details and treat as inconclusive
+            print(f"[UnsafeContentDetector] LLM returned invalid JSON: {raw[:100]}... Error: {e}")
         except Exception as e:
             print(f"[UnsafeContentDetector] LLM call failed: {e}")
 
         return matches
 
-    # ── Deduplication ──────────────────────────────────────────────────────────
+    # ── Deduplication ─────────────────────────────────────────────────────────
 
-    def _deduplicate(self, regex_matches: List[UnsafeMatch],
-                     llm_matches: List[UnsafeMatch]) -> List[UnsafeMatch]:
+    def _deduplicate(
+        self,
+        regex_matches: List[UnsafeMatch],
+        llm_matches: List[UnsafeMatch]
+    ) -> List[UnsafeMatch]:
+        """Merge regex and LLM results, preferring LLM details where overlap exists.
+        
+        Args:
+            regex_matches: Unsafe content matches from regex pre-screening
+            llm_matches: Unsafe content matches from LLM analysis
+            
+        Returns:
+            Deduplicated list of unsafe content matches
+        """
         seen_types = set()
         final = []
 
@@ -330,15 +398,9 @@ Important rules:
 
     # ── Main run ───────────────────────────────────────────────────────────────
 
-    def run(self, text: str) -> DetectionResult:
-
-        # Step 1: Fast regex pre-screen
+    def run(self, text):
         regex_matches = self._regex_prescreen(text)
-
-        # Step 2: LLM semantic detection
         llm_matches = self._llm_detect(text)
-
-        # Step 3: Merge and deduplicate
         matched = self._deduplicate(regex_matches, llm_matches)
 
         severity = self._calculate_severity(matched)

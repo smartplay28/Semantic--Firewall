@@ -144,7 +144,7 @@ class TestSecretsRedact:
     def test_redacts_aws_key(self, agent):
         redacted = agent.redact("Key: AKIAIOSFODNN7EXAMPLE")
         assert "AKIAIOSFODNN7EXAMPLE" not in redacted
-        assert "[REDACTED]" in redacted
+        assert "[AWS_ACCESS_KEY]" in redacted
 
     def test_redacts_password(self, agent):
         redacted = agent.redact("password = 'mysecret123'")
@@ -153,7 +153,15 @@ class TestSecretsRedact:
     def test_clean_text_unchanged(self, agent):
         text = "The weather is nice today."
         redacted = agent.redact(text)
-        assert "[REDACTED]" not in redacted
+        assert "[AWS_ACCESS_KEY]" not in redacted
+
+
+class TestSecretsConfidence:
+
+    def test_aws_key_confidence_is_present(self, agent):
+        result = agent.run("AWS key: AKIAIOSFODNN7EXAMPLE")
+        aws_match = next(match for match in result.matched if match.secret_type == "aws_access_key")
+        assert 0.9 <= aws_match.confidence <= 1.0
 
 
 # ── Edge Case Tests ────────────────────────────────────────────────────────────

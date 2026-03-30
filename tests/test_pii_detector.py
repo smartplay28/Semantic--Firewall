@@ -132,17 +132,25 @@ class TestPIIRedact:
     def test_redacts_email(self, agent):
         redacted = agent.redact("Email: john@gmail.com")
         assert "john@gmail.com" not in redacted
-        assert "[REDACTED]" in redacted
+        assert "[EMAIL]" in redacted
 
     def test_redacts_aadhaar(self, agent):
         redacted = agent.redact("Aadhaar: 1234 5678 9012")
         assert "1234 5678 9012" not in redacted
-        assert "[REDACTED]" in redacted
+        assert "[AADHAAR]" in redacted
 
     def test_clean_text_unchanged(self, agent):
         text = "Hello, how are you?"
         redacted = agent.redact(text)
-        assert "[REDACTED]" not in redacted
+        assert "[EMAIL]" not in redacted
+
+
+class TestPIIConfidence:
+
+    def test_email_confidence_is_present(self, agent):
+        result = agent.run("Contact me at john.doe@gmail.com")
+        email_match = next(match for match in result.matched if match.pii_type == "email")
+        assert 0.9 <= email_match.confidence <= 1.0
 
 
 # ── Edge Case Tests ────────────────────────────────────────────────────────────

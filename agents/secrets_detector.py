@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 
 @dataclass
@@ -8,6 +8,7 @@ class SecretMatch:
     secret_type: str
     value: str
     description: str
+    confidence: float
 
 
 @dataclass
@@ -23,10 +24,81 @@ class DetectionResult:
 class SecretsDetectorAgent:
     def __init__(self):
         self.name = "Secrets Detector"
+        self.redaction_labels: Dict[str, str] = {
+            "aws_access_key": "[AWS_ACCESS_KEY]",
+            "aws_secret_key": "[AWS_SECRET_KEY]",
+            "aws_session_token": "[AWS_SESSION_TOKEN]",
+            "aws_mfa_device": "[AWS_MFA_ARN]",
+            "gcp_api_key": "[GCP_API_KEY]",
+            "gcp_oauth_client": "[GCP_OAUTH_CLIENT]",
+            "gcp_service_account": "[GCP_SERVICE_ACCOUNT]",
+            "azure_subscription": "[AZURE_SUBSCRIPTION_ID]",
+            "azure_storage_key": "[AZURE_STORAGE_KEY]",
+            "azure_connection_string": "[AZURE_CONNECTION_STRING]",
+            "github_personal_token": "[GITHUB_TOKEN]",
+            "github_oauth_token": "[GITHUB_TOKEN]",
+            "github_app_token": "[GITHUB_APP_TOKEN]",
+            "github_refresh_token": "[GITHUB_REFRESH_TOKEN]",
+            "gitlab_token": "[GITLAB_TOKEN]",
+            "bitbucket_token": "[BITBUCKET_TOKEN]",
+            "circleci_token": "[CICD_TOKEN]",
+            "travis_ci_token": "[CICD_TOKEN]",
+            "stripe_secret_key": "[STRIPE_SECRET_KEY]",
+            "stripe_restricted_key": "[STRIPE_RESTRICTED_KEY]",
+            "stripe_test_key": "[STRIPE_TEST_KEY]",
+            "stripe_publishable_key": "[STRIPE_PUBLISHABLE_KEY]",
+            "razorpay_key": "[RAZORPAY_KEY]",
+            "razorpay_test_key": "[RAZORPAY_TEST_KEY]",
+            "paypal_client_secret": "[PAYPAL_SECRET]",
+            "braintree_token": "[BRAINTREE_TOKEN]",
+            "twilio_account_sid": "[TWILIO_ACCOUNT_SID]",
+            "twilio_auth_token": "[TWILIO_AUTH_TOKEN]",
+            "sendgrid_api_key": "[SENDGRID_API_KEY]",
+            "mailgun_api_key": "[MAILGUN_API_KEY]",
+            "mailchimp_api_key": "[MAILCHIMP_API_KEY]",
+            "vonage_api_key": "[VONAGE_API_KEY]",
+            "openai_api_key": "[OPENAI_API_KEY]",
+            "openai_org_id": "[OPENAI_ORG_ID]",
+            "anthropic_api_key": "[ANTHROPIC_API_KEY]",
+            "huggingface_token": "[HUGGINGFACE_TOKEN]",
+            "cohere_api_key": "[COHERE_API_KEY]",
+            "mysql_uri": "[MYSQL_CREDENTIALS]",
+            "postgres_uri": "[POSTGRES_CREDENTIALS]",
+            "mongodb_uri": "[MONGODB_CREDENTIALS]",
+            "redis_uri": "[REDIS_CREDENTIALS]",
+            "mssql_uri": "[MSSQL_CREDENTIALS]",
+            "elasticsearch_uri": "[ELASTICSEARCH_CREDENTIALS]",
+            "rsa_private_key": "[RSA_PRIVATE_KEY]",
+            "ec_private_key": "[EC_PRIVATE_KEY]",
+            "private_key_generic": "[PRIVATE_KEY]",
+            "openssh_private_key": "[OPENSSH_PRIVATE_KEY]",
+            "pgp_private_key": "[PGP_PRIVATE_KEY]",
+            "certificate": "[CERTIFICATE]",
+            "slack_token": "[SLACK_TOKEN]",
+            "slack_webhook": "[SLACK_WEBHOOK]",
+            "discord_token": "[DISCORD_TOKEN]",
+            "discord_webhook": "[DISCORD_WEBHOOK]",
+            "twitter_bearer_token": "[TWITTER_BEARER_TOKEN]",
+            "facebook_access_token": "[FACEBOOK_ACCESS_TOKEN]",
+            "instagram_token": "[INSTAGRAM_TOKEN]",
+            "linkedin_token": "[LINKEDIN_TOKEN]",
+            "heroku_api_key": "[HEROKU_API_KEY]",
+            "docker_auth": "[DOCKER_AUTH]",
+            "kubernetes_secret": "[KUBERNETES_SECRET]",
+            "npm_token": "[NPM_TOKEN]",
+            "pypi_token": "[PYPI_TOKEN]",
+            "terraform_token": "[TERRAFORM_TOKEN]",
+            "vault_token": "[VAULT_TOKEN]",
+            "generic_secret_assignment": "[API_KEY]",
+            "generic_password_assignment": "[PASSWORD]",
+            "bearer_token": "[BEARER_TOKEN]",
+            "basic_auth_header": "[BASIC_AUTH]",
+            "jwt_token": "[JWT_TOKEN]",
+        }
 
         # Each entry: secret_type -> (pattern, description, severity_weight)
         # severity_weight: 1=low, 2=medium, 3=high, 4=critical
-        self.patterns: Dict[str, tuple] = {
+        self.patterns: Dict[str, Tuple[str, str, int]] = {
 
             # ── Cloud Providers ───────────────────────────────────────────────
             "aws_access_key": (
@@ -393,18 +465,57 @@ class SecretsDetectorAgent:
                 2
             ),
         }
+        
+        # Compile regex patterns once at initialization for performance
+        self.compiled_patterns: Dict[str, Tuple[re.Pattern, str, int]] = {}
+        for secret_type, (pattern, description, weight) in self.patterns.items():
+            try:
+                self.compiled_patterns[secret_type] = (
+                    re.compile(pattern, re.IGNORECASE | re.MULTILINE | re.DOTALL),
+                    description,
+                    weight
+                )
+            except re.error as e:
+                print(f"[SecretsDetector] Failed to compile pattern '{secret_type}': {e}")
+
+    def _truncate_text(self, text: str, max_length: int) -> Tuple[str, bool]:
+        """Truncate text if it exceeds max length.
+        
+        Args:
+            text: Input text
+            max_length: Maximum length before truncation
+            
+        Returns:
+            Tuple of (potentially truncated text, was_truncated flag)
+        """
+        if len(text) > max_length:
+            return text[:max_length], True
+        return text, False
 
     def _calculate_severity(self, matched: List[SecretMatch]) -> str:
+        """Calculate overall severity based on matched secret types and weights.
+        
+        CRITICAL: weight 4 secrets found (API keys, private keys, etc.)
+        HIGH: weight 3 secrets (tokens, lesser credentials)
+        MEDIUM: weight 2 secrets (test keys, low-sensitivity tokens)
+        LOW: weight 1 secrets
+        
+        Args:
+            matched: List of detected secrets
+            
+        Returns:
+            Severity level (NONE, LOW, MEDIUM, HIGH, CRITICAL)
+        """
         if not matched:
             return "NONE"
 
-        # Get max weight from matched secrets
-        weights = []
+        # Get max weight from matched secrets using compiled_patterns
+        weights: List[int] = []
         for m in matched:
-            _, _, weight = self.patterns.get(m.secret_type, ("", "", 1))
+            _, _, weight = self.compiled_patterns.get(m.secret_type, (None, "", 1))
             weights.append(weight)
 
-        max_weight = max(weights)
+        max_weight = max(weights) if weights else 1
 
         if max_weight == 4:
             return "CRITICAL"
@@ -415,22 +526,40 @@ class SecretsDetectorAgent:
         else:
             return "LOW"
 
-    def run(self, text: str) -> DetectionResult:
-        matched: List[SecretMatch] = []
+    def _confidence_for(self, secret_type: str) -> float:
+        """Calculate confidence score for detected secret type.
+        
+        Args:
+            secret_type: Type of secret detected
+            
+        Returns:
+            Confidence score (0.0 to 1.0)
+        """
+        _, description, weight = self.compiled_patterns.get(secret_type, (None, "", 1))
+        if weight >= 4:
+            return 0.97
+        if weight == 3:
+            return 0.88 if "contextual" not in description.lower() else 0.76
+        if secret_type in {"jwt_token", "stripe_publishable_key", "openai_org_id"}:
+            return 0.68
+        return 0.72
 
-        for secret_type, (pattern, description, _) in self.patterns.items():
+    def run(self, text):
+        matched = []
+        for secret_type, (compiled_pattern, description, _) in self.compiled_patterns.items():
             try:
-                found = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
-                if found:
+                for found in compiled_pattern.finditer(text):
                     val = found.group(0).strip()
                     if val:
                         matched.append(SecretMatch(
                             secret_type=secret_type,
                             value=val,
-                            description=description
+                            description=description,
+                            confidence=self._confidence_for(secret_type),
                         ))
-            except re.error:
-                continue
+            except (re.error, IndexError) as e:
+                print(f"[SecretsDetector] Error scanning pattern '{secret_type}': {e}")
+                continue  # skip malformed patterns gracefully
 
         severity = self._calculate_severity(matched)
         threat_found = len(matched) > 0
@@ -451,13 +580,21 @@ class SecretsDetectorAgent:
             summary=summary
         )
 
-    def redact(self, text: str) -> str:
-        """Returns text with all detected secrets replaced by [REDACTED]."""
+    def redact(self, text):
+        """Redact detected secrets by replacing with typed placeholders.
+        
+        Args:
+            text: Input text containing secrets
+            
+        Returns:
+            Text with secrets replaced by redaction labels
+        """
         redacted = text
-        for _, (pattern, _, _) in self.patterns.items():
+        for secret_type, (compiled_pattern, _, _) in self.compiled_patterns.items():
             try:
-                redacted = re.sub(pattern, "[REDACTED]", redacted,
-                                  flags=re.IGNORECASE | re.MULTILINE)
-            except re.error:
+                placeholder = self.redaction_labels.get(secret_type, "[SECRET]")
+                redacted = compiled_pattern.sub(placeholder, redacted)
+            except (re.error, AttributeError) as e:
+                print(f"[SecretsDetector] Error redacting pattern '{secret_type}': {e}")
                 continue
         return redacted

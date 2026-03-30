@@ -1,0 +1,67 @@
+{
+  "version": "1.0",
+  "updated_at": "2026-03-30T07:55:07.463052+00:00",
+  "entries": [
+    {
+      "id": "ti_ignore_prev_instructions",
+      "name": "Classic instruction override",
+      "pattern": "\\b(ignore|forget|bypass)\\b.{0,40}\\b(previous|system|original)\\b.{0,40}\\b(instructions?|rules?|prompt)\\b",
+      "category": "INJECTION",
+      "severity": "HIGH",
+      "scope": "both",
+      "description": "Known prompt-injection pattern from public jailbreak corpora.",
+      "source": "seed",
+      "tags": [
+        "jailbreak",
+        "prompt-injection"
+      ],
+      "enabled": true,
+      "updated_at": "2026-03-30T07:55:07.423890+00:00"
+    },
+    {
+      "id": "ti_model_delimiter_abuse",
+      "name": "Delimiter/token smuggling",
+      "pattern": "(<\\|im_start\\|>|<\\|im_end\\|>|\\[INST\\]|\\[/INST\\]|<\\|system\\|>|<\\|assistant\\|>)",
+      "category": "INJECTION",
+      "severity": "HIGH",
+      "scope": "both",
+      "description": "Tokenizer/delimiter abuse frequently used in jailbreak attempts.",
+      "source": "seed",
+      "tags": [
+        "delimiter",
+        "prompt-injection"
+      ],
+      "enabled": true,
+      "updated_at": "2026-03-30T07:55:07.423890+00:00"
+    },
+    {
+      "id": "ti_metadata_ssrf_probe",
+      "name": "Cloud metadata SSRF probe",
+      "pattern": "https?://169\\.254\\.169\\.254",
+      "category": "ABUSE",
+      "severity": "CRITICAL",
+      "scope": "both",
+      "description": "Common cloud instance metadata endpoint probing pattern.",
+      "source": "seed",
+      "tags": [
+        "ssrf",
+        "cloud-metadata"
+      ],
+      "enabled": true,
+      "updated_at": "2026-03-30T07:55:07.423890+00:00"
+    },
+    {
+      "id": "ef30ece9518b47ef8800f0bf083320b1",
+      "name": "Known jailbreak token",
+      "pattern": "OVERRIDE_SYSTEM_POLICY_742",
+      "category": "INJECTION",
+      "severity": "CRITICAL",
+      "scope": "both",
+      "description": "Known malicious marker from threat feed.",
+      "source": "test",
+      "tags": [],
+      "enabled": true,
+      "updated_at": "2026-03-30T07:55:07.462965+00:00"
+    }
+  ]
+}

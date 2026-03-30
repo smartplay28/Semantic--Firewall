@@ -1,0 +1,23 @@
+[
+  {
+    "name": "balanced_draft_pii_detector",
+    "description": "Draft derived from reviewer adjustment suggestion for PII Detector.",
+    "action_overrides": {
+      "PII": {
+        "LOW": "BLOCK"
+      }
+    },
+    "session_flag_threshold": 7.0,
+    "session_block_threshold": 11.0,
+    "allowlist_patterns": [],
+    "allowlist_max_severity": "LOW",
+    "enabled": true,
+    "status": "active",
+    "source": "feedback_adjustment",
+    "support": 2,
+    "workspace_id": "global",
+    "approval_status": "not_requested",
+    "approval_requested_by": "",
+    "approval_approved_by": ""
+  }
+]

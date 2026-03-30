@@ -1,0 +1,24 @@
+[
+  {
+    "id": "df7dd27fd8744c5eb35ee21b94eb3e90",
+    "name": "Suggested rule: Project Orion",
+    "pattern": "Project\\ Orion",
+    "description": "Suggested from feedback.",
+    "severity": "MEDIUM",
+    "threat_type": "CUSTOM_RULE",
+    "scope": "both",
+    "redact": false,
+    "exceptions": [],
+    "tags": [
+      "suggested"
+    ],
+    "enabled": true,
+    "status": "active",
+    "source": "feedback_suggestion",
+    "support": 1,
+    "workspace_id": "alpha",
+    "approval_status": "approved",
+    "approval_requested_by": "alice",
+    "approval_approved_by": "bob"
+  }
+]

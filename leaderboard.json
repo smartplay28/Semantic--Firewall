@@ -1,0 +1,24 @@
+{
+  "generated_by": "benchmarking/run_market_benchmark.py",
+  "dataset": "datasets\\benchmark_from_tests.jsonl",
+  "rows": [
+    {
+      "tool": "Semantic Firewall",
+      "overall_score": 62.16,
+      "precision": 0.9,
+      "recall": 0.75,
+      "f1_score": 0.8182,
+      "avg_latency_ms": 781.0,
+      "updated_at": "2026-03-30"
+    },
+    {
+      "tool": "Regex Heuristic Baseline",
+      "overall_score": 44.77,
+      "precision": 1.0,
+      "recall": 0.1806,
+      "f1_score": 0.3059,
+      "avg_latency_ms": 0.41,
+      "updated_at": "2026-03-30"
+    }
+  ]
+}

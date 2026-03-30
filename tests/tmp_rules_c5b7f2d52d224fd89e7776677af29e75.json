@@ -1,0 +1,17 @@
+[
+  {
+    "id": "87f107db9bf342e8af1e56e1fce53aa6",
+    "name": "Internal codename",
+    "pattern": "Project\\s+Falcon",
+    "description": "Catch internal references",
+    "severity": "HIGH",
+    "threat_type": "CUSTOM_RULE",
+    "scope": "both",
+    "redact": false,
+    "exceptions": [
+      "public demo"
+    ],
+    "tags": [],
+    "enabled": true
+  }
+]

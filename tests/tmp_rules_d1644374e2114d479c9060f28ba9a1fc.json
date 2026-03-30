@@ -1,0 +1,22 @@
+[
+  {
+    "id": "0df44e114cb44947a9d354c150b770b2",
+    "name": "Alpha secret phrase",
+    "pattern": "alpha-only-secret",
+    "description": "Workspace-specific rule",
+    "severity": "HIGH",
+    "threat_type": "CUSTOM_RULE",
+    "scope": "both",
+    "redact": false,
+    "exceptions": [],
+    "tags": [],
+    "enabled": true,
+    "status": "active",
+    "source": "manual",
+    "support": 0,
+    "workspace_id": "alpha",
+    "approval_status": "approved",
+    "approval_requested_by": "",
+    "approval_approved_by": ""
+  }
+]
