@@ -1,0 +1,22 @@
+[
+  {
+    "id": "9a15e294233b4d0cb07e2eb23ddfd770",
+    "name": "Block jailbreak phrase",
+    "pattern": "do anything now",
+    "description": "Catch DAN-style output",
+    "severity": "HIGH",
+    "threat_type": "CUSTOM_RULE",
+    "scope": "output",
+    "redact": false,
+    "exceptions": [],
+    "tags": [],
+    "enabled": true,
+    "status": "active",
+    "source": "manual",
+    "support": 0,
+    "workspace_id": "global",
+    "approval_status": "approved",
+    "approval_requested_by": "",
+    "approval_approved_by": ""
+  }
+]

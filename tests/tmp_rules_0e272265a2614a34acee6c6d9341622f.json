@@ -1,0 +1,24 @@
+[
+  {
+    "id": "b32ab6b3de604106914d3de48a54a01f",
+    "name": "Internal codename",
+    "pattern": "Project\\s+Falcon",
+    "description": "Catch internal references",
+    "severity": "HIGH",
+    "threat_type": "CUSTOM_RULE",
+    "scope": "both",
+    "redact": false,
+    "exceptions": [
+      "public demo"
+    ],
+    "tags": [],
+    "enabled": true,
+    "status": "active",
+    "source": "manual",
+    "support": 0,
+    "workspace_id": "global",
+    "approval_status": "approved",
+    "approval_requested_by": "",
+    "approval_approved_by": ""
+  }
+]

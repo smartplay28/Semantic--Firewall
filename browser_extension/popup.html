@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Semantic Firewall Guard</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Semantic Firewall</h1>
+
+      <label for="apiBase">API Base URL</label>
+      <input id="apiBase" type="text" value="http://localhost:8000" />
+
+      <label for="textInput">Text to Scan</label>
+      <textarea id="textInput" rows="7" placeholder="Paste prompt text..."></textarea>
+
+      <div class="row">
+        <button id="grabPageText" type="button">Use Active Field</button>
+        <button id="scanButton" type="button">Scan</button>
+      </div>
+
+      <div id="result" class="result empty">No scan yet.</div>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

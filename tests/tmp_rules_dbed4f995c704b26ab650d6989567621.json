@@ -1,0 +1,24 @@
+[
+  {
+    "id": "0b130f81790c48438d67dd74bc19fc44",
+    "name": "Suggested rule: Needs Approval",
+    "pattern": "needs\\ approval",
+    "description": "Approval flow test.",
+    "severity": "LOW",
+    "threat_type": "CUSTOM_RULE",
+    "scope": "both",
+    "redact": false,
+    "exceptions": [],
+    "tags": [
+      "suggested"
+    ],
+    "enabled": false,
+    "status": "draft",
+    "source": "feedback_suggestion",
+    "support": 1,
+    "workspace_id": "alpha",
+    "approval_status": "approved",
+    "approval_requested_by": "alice",
+    "approval_approved_by": "bob"
+  }
+]
