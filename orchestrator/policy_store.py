@@ -16,6 +16,7 @@ class PolicyStore:
                 "session_block_threshold": 12.0,
                 "allowlist_patterns": [],
                 "allowlist_max_severity": "LOW",
+                "detector_thresholds": {},
                 "enabled": True,
             },
             "strict": {
@@ -30,6 +31,10 @@ class PolicyStore:
                 "session_block_threshold": 9.0,
                 "allowlist_patterns": [],
                 "allowlist_max_severity": "LOW",
+                "detector_thresholds": {
+                    "Injection Detector": {"confidence_threshold": 0.45},
+                    "Unsafe Content Detector": {"confidence_threshold": 0.45},
+                },
                 "enabled": True,
             },
             "developer_assistant": {
@@ -43,6 +48,10 @@ class PolicyStore:
                 "session_block_threshold": 14.0,
                 "allowlist_patterns": [],
                 "allowlist_max_severity": "LOW",
+                "detector_thresholds": {
+                    "Injection Detector": {"confidence_threshold": 0.58},
+                    "Unsafe Content Detector": {"confidence_threshold": 0.58},
+                },
                 "enabled": True,
             },
             "customer_support": {
@@ -57,6 +66,10 @@ class PolicyStore:
                 "session_block_threshold": 10.0,
                 "allowlist_patterns": [],
                 "allowlist_max_severity": "LOW",
+                "detector_thresholds": {
+                    "Injection Detector": {"confidence_threshold": 0.48},
+                    "Unsafe Content Detector": {"confidence_threshold": 0.48},
+                },
                 "enabled": True,
             },
             "research": {
@@ -70,6 +83,10 @@ class PolicyStore:
                 "session_block_threshold": 15.0,
                 "allowlist_patterns": [],
                 "allowlist_max_severity": "LOW",
+                "detector_thresholds": {
+                    "Injection Detector": {"confidence_threshold": 0.55},
+                    "Unsafe Content Detector": {"confidence_threshold": 0.55},
+                },
                 "enabled": True,
             },
         }
@@ -125,6 +142,7 @@ class PolicyStore:
         session_block_threshold: float = 12.0,
         allowlist_patterns: Optional[List[str]] = None,
         allowlist_max_severity: str = "LOW",
+        detector_thresholds: Optional[Dict[str, Dict[str, float]]] = None,
         enabled: bool = True,
         status: str = "active",
         source: str = "manual",
@@ -145,6 +163,7 @@ class PolicyStore:
             "session_block_threshold": float(session_block_threshold),
             "allowlist_patterns": normalized_patterns,
             "allowlist_max_severity": allowlist_max_severity.upper(),
+            "detector_thresholds": detector_thresholds or {},
             "enabled": enabled if status != "draft" else False,
             "status": status,
             "source": source,
@@ -201,6 +220,7 @@ class PolicyStore:
             session_block_threshold=session_block,
             allowlist_patterns=base.get("allowlist_patterns", []),
             allowlist_max_severity=base.get("allowlist_max_severity", "LOW"),
+            detector_thresholds=base.get("detector_thresholds", {}),
             enabled=False,
             status="draft",
             source="feedback_adjustment",
@@ -262,6 +282,7 @@ class PolicyStore:
             "session_block_threshold",
             "allowlist_patterns",
             "allowlist_max_severity",
+            "detector_thresholds",
             "enabled",
         ]
         changes = []

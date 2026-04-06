@@ -20,4 +20,33 @@ jobs:
           pip install -e .[dev]
       - name: Run tests
         run: pytest -q
-
+      - name: Build Benchmark Datasets
+        run: |
+          python benchmarking/extract_dataset_from_tests.py
+          python benchmarking/build_golden_eval_set.py
+      - name: Run Benchmark Matrix (Policy Profiles)
+        env:
+          GROQ_API_KEY: ""
+          SEMANTIC_FIREWALL_DISABLE_LLM_DETECTORS: "1"
+        run: |
+          python benchmarking/run_market_benchmark.py --dataset datasets/golden_eval_set.jsonl --max-samples 80 --quiet
+      - name: Suggest Calibration Params
+        run: |
+          python tools/suggest_calibration_from_benchmark.py --results results/benchmark_results.json
+      - name: Suggest Ensemble Params
+        run: |
+          python tools/suggest_ensemble_from_benchmark.py --results results/benchmark_results.json
+      - name: Append Benchmark History Snapshot
+        run: |
+          python tools/append_benchmark_history.py --results results/benchmark_results.json --history results/benchmark_history.jsonl
+      - name: Upload Benchmark Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-metrics
+          path: |
+            leaderboard.json
+            results/benchmark_results.json
+            results/benchmark_history.jsonl
+            results/threshold_tuning_recommendations.json
+            results/calibration_recommendations.json
+            results/ensemble_recommendations.json

@@ -18,6 +18,7 @@ from agents.unsafe_content_detector import UnsafeContentDetectorAgent
 from orchestrator.audit_logger import AuditLogger
 from orchestrator.policy_store import PolicyStore
 from orchestrator.session_store import SessionStore
+from orchestrator.session_judge import SessionJudge
 from orchestrator.risk_scorer import RiskScorer
 from orchestrator.explainability import ExplainabilityGenerator, ExplainabilityReport
 from orchestrator.alerting import AlertManager
@@ -35,6 +36,7 @@ class AgentResult:
     matched: list
     agent_available: bool = True
     fail_closed: bool = False
+    meta: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -70,6 +72,12 @@ class InteractionDecision:
     drift_detected: bool = False
     contradiction_detected: bool = False
     session_risk_score: float = 0.0
+
+
+@dataclass
+class CacheEntry:
+    decision: FirewallDecision
+    created_at: float
 
 
 class SemanticFirewallOrchestrator:
@@ -155,10 +163,39 @@ class SemanticFirewallOrchestrator:
         self.session_store = SessionStore()
         self.audit_logger = AuditLogger(db_path=db_path)
         self.policy_store = PolicyStore()
-        self._cache: Dict[str, FirewallDecision] = {}
-        self._cache_max_size = 500
+        self._cache: Dict[str, CacheEntry] = {}
+        self._cache_max_size = int(os.getenv("SEMANTIC_FIREWALL_CACHE_MAX_SIZE", "500"))
+        self._cache_ttl_sec = float(os.getenv("SEMANTIC_FIREWALL_CACHE_TTL_SEC", "300"))
+        self._similar_cache_enabled = os.getenv("SEMANTIC_FIREWALL_SIMILAR_CACHE_ENABLED", "1") != "0"
+        self._similar_cache_min_chars = int(os.getenv("SEMANTIC_FIREWALL_SIMILAR_CACHE_MIN_CHARS", "40"))
         self._cache_lock = threading.Lock()
+        self.ensemble_enabled = os.getenv("SEMANTIC_FIREWALL_ENSEMBLE_ENABLED", "1") != "0"
+        self.ensemble_flag_threshold = float(os.getenv("SEMANTIC_FIREWALL_ENSEMBLE_FLAG_THRESHOLD", "1.8"))
+        self.ensemble_redact_threshold = float(os.getenv("SEMANTIC_FIREWALL_ENSEMBLE_REDACT_THRESHOLD", "2.6"))
+        self.ensemble_block_threshold = float(os.getenv("SEMANTIC_FIREWALL_ENSEMBLE_BLOCK_THRESHOLD", "3.5"))
+        self.calibration_enabled = os.getenv("SEMANTIC_FIREWALL_CALIBRATION_ENABLED", "1") != "0"
+        self._calibration_params = {
+            "DEFAULT": self._calibration_pair_from_env("DEFAULT", 1.0, 0.0),
+            "PII": self._calibration_pair_from_env("PII", 1.0, 0.0),
+            "SECRET": self._calibration_pair_from_env("SECRET", 1.0, 0.0),
+            "ABUSE": self._calibration_pair_from_env("ABUSE", 1.0, 0.0),
+            "INJECTION": self._calibration_pair_from_env("INJECTION", 1.05, -0.02),
+            "UNSAFE_CONTENT": self._calibration_pair_from_env("UNSAFE_CONTENT", 1.05, -0.02),
+            "THREAT_INTEL": self._calibration_pair_from_env("THREAT_INTEL", 1.0, 0.0),
+            "CUSTOM_RULE": self._calibration_pair_from_env("CUSTOM_RULE", 1.0, 0.0),
+        }
+        self._ensemble_weights = {
+            "PII Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_PII", "1.0")),
+            "Secrets Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_SECRETS", "1.2")),
+            "Abuse Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_ABUSE", "1.0")),
+            "Injection Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_INJECTION", "1.3")),
+            "Unsafe Content Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_UNSAFE_CONTENT", "1.3")),
+            "Threat Intel Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_THREAT_INTEL", "1.1")),
+            "Custom Rules Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_CUSTOM_RULES", "1.0")),
+        }
         self.llm_gate_enabled = os.getenv("SEMANTIC_FIREWALL_LLM_GATE_ENABLED", "1") != "0"
+        self.llm_gate_threshold = float(os.getenv("SEMANTIC_FIREWALL_LLM_GATE_THRESHOLD", "1.0"))
+        self.disable_llm_detectors = os.getenv("SEMANTIC_FIREWALL_DISABLE_LLM_DETECTORS", "0") == "1"
         self.agent_timeouts = {
             "default": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_DEFAULT_SEC", "8.0")),
             "PII Detector": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_PII_SEC", "6.0")),
@@ -178,9 +215,21 @@ class SemanticFirewallOrchestrator:
         self.compliance_manager = ComplianceProfileManager()
         self.multi_turn_detector = MultiTurnAttackDetector()
         self.enhanced_session_store = EnhancedSessionStore()
+        self.session_judge = SessionJudge(
+            session_store=self.session_store,
+            enhanced_session_store=self.enhanced_session_store,
+            multi_turn_detector=self.multi_turn_detector,
+            injection_agent_getter=lambda: self.agents["Injection Detector"],
+            action_rank=self._action_rank,
+        )
         print("[Orchestrator] All production modules ready.")
 
         print("[Orchestrator] All agents ready.\n")
+
+    def _calibration_pair_from_env(self, key: str, slope_default: float, bias_default: float) -> tuple[float, float]:
+        slope = float(os.getenv(f"SEMANTIC_FIREWALL_CALIBRATION_{key}_SLOPE", str(slope_default)))
+        bias = float(os.getenv(f"SEMANTIC_FIREWALL_CALIBRATION_{key}_BIAS", str(bias_default)))
+        return slope, bias
 
     def _agent_timeout(self, name: str) -> float:
         return max(0.05, float(self.agent_timeouts.get(name, self.agent_timeouts["default"])))
@@ -207,6 +256,37 @@ class SemanticFirewallOrchestrator:
     ) -> str:
         return hashlib.md5(f"{scan_target}:{policy_profile}:{workspace_id}:{text.strip()}".encode()).hexdigest()
 
+    def _similar_cache_key(
+        self,
+        text: str,
+        scan_target: str = "input",
+        policy_profile: str = "balanced",
+        workspace_id: str = "default",
+    ) -> Optional[str]:
+        if not self._similar_cache_enabled:
+            return None
+        normalized = re.sub(r"\s+", " ", text.strip().lower())
+        if len(normalized) < self._similar_cache_min_chars:
+            return None
+        return hashlib.md5(f"similar:{scan_target}:{policy_profile}:{workspace_id}:{normalized}".encode()).hexdigest()
+
+    def _prune_cache_locked(self, now: float):
+        if self._cache_ttl_sec <= 0:
+            self._cache.clear()
+            return
+
+        expired = [
+            key
+            for key, entry in self._cache.items()
+            if (now - entry.created_at) > self._cache_ttl_sec
+        ]
+        for key in expired:
+            del self._cache[key]
+
+        while len(self._cache) > self._cache_max_size:
+            oldest = next(iter(self._cache))
+            del self._cache[oldest]
+
     def _get_from_cache(
         self,
         text: str,
@@ -214,12 +294,18 @@ class SemanticFirewallOrchestrator:
         policy_profile: str = "balanced",
         workspace_id: str = "default",
     ) -> Optional[FirewallDecision]:
+        now = time.time()
+        exact_key = self._cache_key(text, scan_target, policy_profile, workspace_id)
+        similar_key = self._similar_cache_key(text, scan_target, policy_profile, workspace_id)
         with self._cache_lock:
-            cached = self._cache.get(self._cache_key(text, scan_target, policy_profile, workspace_id))
-        if not cached:
+            self._prune_cache_locked(now)
+            cached_entry = self._cache.get(exact_key)
+            if cached_entry is None and similar_key:
+                cached_entry = self._cache.get(similar_key)
+        if not cached_entry:
             return None
 
-        cached_copy = deepcopy(cached)
+        cached_copy = deepcopy(cached_entry.decision)
         cached_copy.from_cache = True
         cached_copy.processing_time_ms = 0.0
         return cached_copy
@@ -232,11 +318,16 @@ class SemanticFirewallOrchestrator:
         policy_profile: str = "balanced",
         workspace_id: str = "default",
     ):
+        now = time.time()
+        exact_key = self._cache_key(text, scan_target, policy_profile, workspace_id)
+        similar_key = self._similar_cache_key(text, scan_target, policy_profile, workspace_id)
+        entry = CacheEntry(decision=decision, created_at=now)
         with self._cache_lock:
-            if len(self._cache) >= self._cache_max_size:
-                oldest = next(iter(self._cache))
-                del self._cache[oldest]
-            self._cache[self._cache_key(text, scan_target, policy_profile, workspace_id)] = decision
+            self._prune_cache_locked(now)
+            self._cache[exact_key] = entry
+            if similar_key:
+                self._cache[similar_key] = entry
+            self._prune_cache_locked(now)
 
     def _run_agent(
         self,
@@ -245,12 +336,21 @@ class SemanticFirewallOrchestrator:
         text: str,
         scan_target: str = "input",
         workspace_id: str = "default",
+        detector_threshold_overrides: Optional[Dict[str, Dict[str, float]]] = None,
     ) -> AgentResult:
         try:
             timeout_seconds = self._agent_timeout(name)
             executor = ThreadPoolExecutor(max_workers=1)
             try:
-                future = executor.submit(self._invoke_agent, name, agent, text, scan_target, workspace_id)
+                future = executor.submit(
+                    self._invoke_agent,
+                    name,
+                    agent,
+                    text,
+                    scan_target,
+                    workspace_id,
+                    detector_threshold_overrides,
+                )
                 result = future.result(timeout=timeout_seconds)
             finally:
                 executor.shutdown(wait=False, cancel_futures=True)
@@ -263,6 +363,7 @@ class SemanticFirewallOrchestrator:
                 matched=result.matched,
                 agent_available=True,
                 fail_closed=name in self.fail_closed_agents,
+                meta=getattr(result, "meta", {}) or {},
             )
         except FuturesTimeoutError:
             print(f"[Orchestrator] Agent '{name}' timed out after {self._agent_timeout(name):.2f}s")
@@ -279,6 +380,7 @@ class SemanticFirewallOrchestrator:
                 matched=[],
                 agent_available=False,
                 fail_closed=fail_closed,
+                meta={"error_type": "timeout"},
             )
         except Exception as exc:
             print(f"[Orchestrator] Agent '{name}' failed: {exc}")
@@ -295,13 +397,29 @@ class SemanticFirewallOrchestrator:
                 matched=[],
                 agent_available=False,
                 fail_closed=fail_closed,
+                meta={"error_type": "exception"},
             )
 
-    def _invoke_agent(self, name: str, agent, text: str, scan_target: str, workspace_id: str):
+    def _invoke_agent(
+        self,
+        name: str,
+        agent,
+        text: str,
+        scan_target: str,
+        workspace_id: str,
+        detector_threshold_overrides: Optional[Dict[str, Dict[str, float]]] = None,
+    ):
+        detector_threshold_overrides = detector_threshold_overrides or {}
+        detector_config = detector_threshold_overrides.get(name, {})
         if name == "Custom Rules Detector":
             return agent.run(text, scan_target=scan_target, workspace_id=workspace_id)
         if name == "Threat Intel Detector":
             return agent.run(text, scan_target=scan_target)
+        if name in {"Injection Detector", "Unsafe Content Detector"}:
+            return agent.run(
+                text,
+                confidence_threshold_override=detector_config.get("confidence_threshold"),
+            )
         return agent.run(text)
 
     def _run_agents_parallel(
@@ -310,6 +428,7 @@ class SemanticFirewallOrchestrator:
         text: str,
         scan_target: str,
         workspace_id: str,
+        detector_threshold_overrides: Optional[Dict[str, Dict[str, float]]] = None,
     ) -> List[AgentResult]:
         if not agent_names:
             return []
@@ -323,6 +442,7 @@ class SemanticFirewallOrchestrator:
                     text,
                     scan_target,
                     workspace_id,
+                    detector_threshold_overrides,
                 ): name
                 for name in agent_names
             }
@@ -333,14 +453,13 @@ class SemanticFirewallOrchestrator:
                 print(f"  [{status}] {result.agent_name}: {result.summary}")
         return results
 
-    def _should_run_llm_agents(self, text: str, cheap_results: List[AgentResult]) -> bool:
-        if not self.llm_gate_enabled:
-            return True
+    def _llm_gate_score(self, text: str, cheap_results: List[AgentResult]) -> float:
+        score = 0.0
         if len(text) >= 800:
-            return True
+            score += 1.5
 
         if any(result.threat_found for result in cheap_results):
-            return True
+            score += 2.0
 
         suspicious_pattern = re.search(
             r"(ignore\s+previous|system\s+prompt|jailbreak|do\s+anything\s+now|bypass|override|"
@@ -348,7 +467,41 @@ class SemanticFirewallOrchestrator:
             text,
             re.IGNORECASE,
         )
-        return bool(suspicious_pattern)
+        if suspicious_pattern:
+            score += 1.0
+
+        return score
+
+    def _should_run_llm_agents(self, text: str, cheap_results: List[AgentResult]) -> tuple[bool, float]:
+        if self.disable_llm_detectors:
+            return False, 0.0
+        if not self.llm_gate_enabled:
+            return True, self.llm_gate_threshold
+        score = self._llm_gate_score(text, cheap_results)
+        return score >= self.llm_gate_threshold, score
+
+    def _detector_threshold_overrides(
+        self,
+        policy_profile: str,
+        workspace_id: str = "default",
+    ) -> Dict[str, Dict[str, float]]:
+        profile = self.policy_store.get_preset(policy_profile, workspace_id=workspace_id)
+        raw = profile.get("detector_thresholds", {})
+        if not isinstance(raw, dict):
+            return {}
+        normalized: Dict[str, Dict[str, float]] = {}
+        for detector_name, config in raw.items():
+            if not isinstance(config, dict):
+                continue
+            confidence = config.get("confidence_threshold")
+            if confidence is None:
+                continue
+            try:
+                value = float(confidence)
+            except (TypeError, ValueError):
+                continue
+            normalized[str(detector_name)] = {"confidence_threshold": max(0.0, min(1.0, value))}
+        return normalized
 
     def _get_redacted_text(
         self,
@@ -446,6 +599,54 @@ class SemanticFirewallOrchestrator:
         reason = " | ".join(reasons) if reasons else "All agents passed. Content is clean."
         return final_action, reason, triggered
 
+    def _confidence_from_result(self, result: AgentResult) -> float:
+        confidences = [
+            float(getattr(match, "confidence", 0.0))
+            for match in result.matched
+            if getattr(match, "confidence", None) is not None
+        ]
+        if not confidences:
+            return 0.5 if result.threat_found else 0.0
+        return max(0.0, min(1.0, max(confidences)))
+
+    def _calibrate_confidence(self, threat_type: str, confidence: float) -> float:
+        if not self.calibration_enabled:
+            return max(0.0, min(1.0, confidence))
+        slope, bias = self._calibration_params.get(threat_type, self._calibration_params["DEFAULT"])
+        calibrated = (confidence * slope) + bias
+        return max(0.0, min(1.0, calibrated))
+
+    def _attach_calibrated_probabilities(self, agent_results: List[AgentResult]):
+        for result in agent_results:
+            base_conf = self._confidence_from_result(result)
+            calibrated = self._calibrate_confidence(result.threat_type, base_conf)
+            result.meta["raw_confidence"] = round(base_conf, 4)
+            result.meta["calibrated_probability"] = round(calibrated, 4)
+
+    def _ensemble_action(self, agent_results: List[AgentResult]) -> tuple[str, float, list[str]]:
+        if not self.ensemble_enabled:
+            return "ALLOW", 0.0, []
+        weighted_risk = 0.0
+        contributors: list[str] = []
+        for result in agent_results:
+            if not result.threat_found:
+                continue
+            probability = float((result.meta or {}).get("calibrated_probability", 0.0))
+            weight = self._ensemble_weights.get(result.agent_name, 1.0)
+            severity_component = max(1, self._severity_rank(result.severity))
+            contribution = weight * probability * (severity_component / 2.0)
+            if contribution > 0:
+                contributors.append(result.agent_name)
+            weighted_risk += contribution
+
+        if weighted_risk >= self.ensemble_block_threshold:
+            return "BLOCK", weighted_risk, contributors
+        if weighted_risk >= self.ensemble_redact_threshold:
+            return "REDACT", weighted_risk, contributors
+        if weighted_risk >= self.ensemble_flag_threshold:
+            return "FLAG", weighted_risk, contributors
+        return "ALLOW", weighted_risk, contributors
+
     def _collect_matched_threats(self, agent_results: List[AgentResult]) -> dict:
         matched_threats = {}
         for result in agent_results:
@@ -484,12 +685,25 @@ class SemanticFirewallOrchestrator:
 
         cheap_agents = [name for name in self.agents if name not in self.llm_agents]
         llm_agents = [name for name in self.agents if name in self.llm_agents]
-        cheap_results = self._run_agents_parallel(cheap_agents, text, scan_target, workspace_id)
-        run_llm_agents = self._should_run_llm_agents(text, cheap_results)
+        detector_threshold_overrides = self._detector_threshold_overrides(policy_profile, workspace_id=workspace_id)
+        cheap_results = self._run_agents_parallel(
+            cheap_agents,
+            text,
+            scan_target,
+            workspace_id,
+            detector_threshold_overrides=detector_threshold_overrides,
+        )
+        run_llm_agents, llm_gate_score = self._should_run_llm_agents(text, cheap_results)
 
         agent_results: List[AgentResult] = list(cheap_results)
         if run_llm_agents:
-            llm_results = self._run_agents_parallel(llm_agents, text, scan_target, workspace_id)
+            llm_results = self._run_agents_parallel(
+                llm_agents,
+                text,
+                scan_target,
+                workspace_id,
+                detector_threshold_overrides=detector_threshold_overrides,
+            )
             agent_results.extend(llm_results)
         else:
             print("[Orchestrator] LLM gate closed - skipping expensive detectors for low-risk content.")
@@ -503,15 +717,31 @@ class SemanticFirewallOrchestrator:
                     matched=[],
                     agent_available=True,
                     fail_closed=False,
+                    meta={
+                        "llm_called": False,
+                        "regex_only": False,
+                        "skipped_by_orchestrator_gate": True,
+                        "llm_gate_score": round(llm_gate_score, 3),
+                        "llm_gate_threshold": self.llm_gate_threshold,
+                    },
                 )
                 agent_results.append(skipped)
 
         agent_results = self._apply_allowlist(text, agent_results, policy_profile, workspace_id=workspace_id)
+        self._attach_calibrated_probabilities(agent_results)
         final_action, reason, triggered = self._apply_policy(
             agent_results,
             policy_profile=policy_profile,
             workspace_id=workspace_id,
         )
+        ensemble_action, ensemble_risk, ensemble_contributors = self._ensemble_action(agent_results)
+        if self._action_rank(ensemble_action) > self._action_rank(final_action):
+            final_action = ensemble_action
+            if ensemble_contributors:
+                reason += (
+                    f" | Ensemble escalation -> {ensemble_action} "
+                    f"(risk={ensemble_risk:.2f}, contributors={', '.join(sorted(set(ensemble_contributors)))})"
+                )
         overall_severity = self._overall_severity(agent_results)
         unavailable_agents = [result.agent_name for result in agent_results if not result.agent_available]
         degraded = bool(unavailable_agents)
@@ -520,53 +750,8 @@ class SemanticFirewallOrchestrator:
             degraded_reason = "Unavailable detectors: " + ", ".join(unavailable_agents)
             reason = f"{reason} | {degraded_reason}" if reason else degraded_reason
 
-        profile = self.policy_store.get_preset(policy_profile, workspace_id=workspace_id)
-        flag_threshold = float(profile.get("session_flag_threshold", self.session_store.FLAG_THRESHOLD))
-        block_threshold = float(profile.get("session_block_threshold", self.session_store.BLOCK_THRESHOLD))
-        session_info = None
-
-        if scan_target == "input" and session_id:
-            if self.session_store.should_block(session_id, threshold=block_threshold):
-                final_action = "BLOCK"
-                score = self.session_store.get_threat_score(session_id)
-                reason += f" | Session BLOCKED: cumulative threat score {score:.1f} exceeded threshold"
-            elif self.session_store.should_flag(session_id, threshold=flag_threshold):
-                if self.action_priority.index(final_action) < self.action_priority.index("FLAG"):
-                    final_action = "FLAG"
-                score = self.session_store.get_threat_score(session_id)
-                reason += f" | Session FLAG: cumulative threat score {score:.1f}"
-
-            recent = self.session_store.get_recent_texts(session_id, n=3)
-            if len(recent) >= 2:
-                combined_text = " ".join(recent + [text])
-                try:
-                    already_flagged = any(
-                        result.threat_found and result.threat_type == "INJECTION"
-                        for result in agent_results
-                    )
-                    if not already_flagged:
-                        combined_result = self.agents["Injection Detector"].run(combined_text)
-                        if combined_result.threat_found:
-                            final_action = "BLOCK"
-                            triggered.append("Multi-turn Injection Detector")
-                            reason += " | Multi-turn injection detected across conversation history"
-                except Exception as exc:
-                    print(f"[Orchestrator] Multi-turn check failed: {exc}")
-
-            self.session_store.add_message(session_id, text, final_action, overall_severity)
-            session_info = self.session_store.summary(
-                session_id,
-                flag_threshold=flag_threshold,
-                block_threshold=block_threshold,
-            )
-            print(
-                f"[Session {session_id}] score={session_info['cumulative_score']:.1f} "
-                f"msgs={session_info['message_count']}"
-            )
-
-        # ========== PRODUCTION FEATURES: Risk Scoring, Explainability, Compliance, Multi-turn Detection ==========
-        
-        # 1. Calculate risk score (0-100)
+        # Risk scoring is based on current turn results, so compute it before
+        # session aggregation uses it for cross-turn tracking.
         risk_breakdown = self.risk_scorer.calculate_risk_score(
             agent_results=agent_results,
             overall_severity=overall_severity,
@@ -574,12 +759,39 @@ class SemanticFirewallOrchestrator:
         )
         risk_score = risk_breakdown.overall_score
         risk_level = risk_breakdown.risk_level
-        
+
+        profile = self.policy_store.get_preset(policy_profile, workspace_id=workspace_id)
+        flag_threshold = float(profile.get("session_flag_threshold", self.session_store.FLAG_THRESHOLD))
+        block_threshold = float(profile.get("session_block_threshold", self.session_store.BLOCK_THRESHOLD))
+        session_info = None
+        detected_patterns = []
+
+        if scan_target == "input" and session_id:
+            session_decision = self.session_judge.apply(
+                session_id=session_id,
+                text=text,
+                final_action=final_action,
+                reason=reason,
+                overall_severity=overall_severity,
+                agent_results=agent_results,
+                triggered=triggered,
+                risk_score=risk_score,
+                flag_threshold=flag_threshold,
+                block_threshold=block_threshold,
+            )
+            final_action = session_decision.action
+            reason = session_decision.reason
+            session_info = session_decision.session_info
+            detected_patterns = session_decision.detected_patterns
+            triggered = session_decision.triggered_agents
+
+        # ========== PRODUCTION FEATURES: Risk Scoring, Explainability, Compliance, Multi-turn Detection ==========
+
+        # 1. Risk score already calculated above so session aggregation can use it.
         # 2. Generate explainability report after constructing the decision object.
         explanation = None
         
         # 3. Apply compliance profiles and adjust decision if needed
-        detected_patterns = []
         try:
             compliance_profile = self.compliance_manager.get_profile(policy_profile)
             if compliance_profile and scan_target == "input":
@@ -603,45 +815,6 @@ class SemanticFirewallOrchestrator:
                                 reason += f" | Compliance '{policy_profile}' escalated: {action_override}"
         except Exception as e:
             print(f"[Orchestrator] Compliance profile application failed: {e}")
-        
-        # 4. Detect multi-turn attack patterns if session tracking enabled
-        if session_id and scan_target == "input":
-            try:
-                # Track this message in enhanced session store
-                self.enhanced_session_store.add_message(
-                    session_id=session_id,
-                    text=text,
-                    action=final_action,
-                    threat_types=[r.threat_type for r in agent_results if r.threat_found],
-                    severity=overall_severity,
-                    agents_triggered=triggered,
-                    risk_score=risk_score,
-                )
-                
-                # Detect attack patterns
-                patterns = self.multi_turn_detector.detect_patterns(
-                    session_id=session_id,
-                    session_store=self.enhanced_session_store,
-                )
-                
-                if patterns:
-                    detected_patterns = patterns
-                    for pattern in patterns:
-                        if pattern.get("confidence", 0) >= 0.7:  # High confidence patterns
-                            # Escalate decision if critical pattern detected
-                            if pattern.get("type") == "escalating_injections":
-                                final_action = "BLOCK"
-                                reason += " | Multi-turn escalating injection detected"
-                            elif pattern.get("type") == "credential_probing":
-                                final_action = "BLOCK"
-                                reason += " | Multi-turn credential probing attack detected"
-                            elif pattern.get("type") == "detector_evasion":
-                                final_action = "BLOCK"
-                                reason += " | Multi-turn detector evasion tactic detected"
-                        
-                        print(f"[Pattern Detected] {pattern.get('type')}: confidence={pattern.get('confidence', 0):.0%}")
-            except Exception as e:
-                print(f"[Orchestrator] Multi-turn pattern detection failed: {e}")
         
         # ========== END PRODUCTION FEATURES ==========
 

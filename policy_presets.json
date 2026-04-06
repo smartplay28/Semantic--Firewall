@@ -9,6 +9,29 @@
       "approved demo"
     ],
     "allowlist_max_severity": "LOW",
+    "detector_thresholds": {},
+    "enabled": true,
+    "status": "active",
+    "source": "manual",
+    "support": 0,
+    "workspace_id": "global",
+    "approval_status": "approved",
+    "approval_requested_by": "",
+    "approval_approved_by": ""
+  },
+  {
+    "name": "detector_threshold_demo",
+    "description": "Profile with detector threshold overrides.",
+    "action_overrides": {},
+    "session_flag_threshold": 8.0,
+    "session_block_threshold": 12.0,
+    "allowlist_patterns": [],
+    "allowlist_max_severity": "LOW",
+    "detector_thresholds": {
+      "Injection Detector": {
+        "confidence_threshold": 0.77
+      }
+    },
     "enabled": true,
     "status": "active",
     "source": "manual",

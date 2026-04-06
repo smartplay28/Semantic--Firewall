@@ -1,3 +1,4 @@
+import tempfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -8,9 +9,15 @@ from agents.threat_intel_detector import ThreatIntelDetectorAgent
 from orchestrator.orchestrator import SemanticFirewallOrchestrator
 from orchestrator.threat_intel import ThreatIntelFeedManager
 
+TMP_DIR = Path(tempfile.gettempdir())
+
+
+def _tmp_file(stem: str, ext: str) -> Path:
+    return TMP_DIR / f"{stem}_{uuid4().hex}{ext}"
+
 
 def test_threat_intel_detector_matches_known_signature():
-    feed_path = Path("tests") / f"tmp_threat_intel_{uuid4().hex}.json"
+    feed_path = _tmp_file("tmp_threat_intel", ".json")
     manager = ThreatIntelFeedManager(str(feed_path))
     manager.add_entry(
         name="Known jailbreak token",
@@ -32,8 +39,8 @@ def test_threat_intel_detector_matches_known_signature():
 
 
 def test_orchestrator_applies_threat_intel_decision():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
-    feed_path = Path("tests") / f"tmp_threat_intel_{uuid4().hex}.json"
+    db_path = _tmp_file("tmp_audit", ".db")
+    feed_path = _tmp_file("tmp_threat_intel", ".json")
     manager = ThreatIntelFeedManager(str(feed_path))
     manager.add_entry(
         name="Remote code execution marker",
@@ -89,3 +96,4 @@ def test_api_threat_intel_crud():
 
     delete_response = client.delete(f"/threat-intel/{entry_id}")
     assert delete_response.status_code == 200
+

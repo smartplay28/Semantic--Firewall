@@ -1,24 +1,410 @@
 {
-  "dataset": "datasets\\benchmark_from_tests.jsonl",
-  "sample_count": 105,
+  "dataset": "datasets\\golden_eval_set.jsonl",
+  "sample_count": 80,
   "tools": [
     {
-      "tool": "Semantic Firewall",
+      "tool": "Semantic Firewall (balanced)",
       "status": "ok",
       "errors": 0,
       "latency_ms": {
-        "avg": 781.0,
-        "p95": 1571.94
+        "avg": 3151.11,
+        "p50": 53.28,
+        "p95": 8095.48,
+        "timeout_rate": 0.3875
       },
       "metrics": {
-        "tp": 54,
+        "tp": 37,
         "fp": 6,
-        "tn": 27,
-        "fn": 18,
-        "precision": 0.9,
-        "recall": 0.75,
-        "f1_score": 0.8182,
-        "accuracy": 0.7714
+        "tn": 26,
+        "fn": 11,
+        "precision": 0.8605,
+        "recall": 0.7708,
+        "f1_score": 0.8132,
+        "accuracy": 0.7875
+      },
+      "error_buckets_by_category": {
+        "unsafe_content": {
+          "fp": 1,
+          "fn": 8,
+          "total": 16
+        },
+        "secrets": {
+          "fp": 1,
+          "fn": 0,
+          "total": 16
+        },
+        "abuse": {
+          "fp": 1,
+          "fn": 0,
+          "total": 13
+        },
+        "injection": {
+          "fp": 1,
+          "fn": 3,
+          "total": 16
+        },
+        "pii": {
+          "fp": 2,
+          "fn": 0,
+          "total": 17
+        },
+        "general": {
+          "fp": 0,
+          "fn": 0,
+          "total": 2
+        }
+      },
+      "degraded_rate": 0.35,
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 34,
+            "llm_called_rate": 0.425,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 14,
+            "llm_called_rate": 0.175,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "Semantic Firewall (strict)",
+      "status": "ok",
+      "errors": 0,
+      "latency_ms": {
+        "avg": 3020.5,
+        "p50": 18.57,
+        "p95": 8036.0,
+        "timeout_rate": 0.375
+      },
+      "metrics": {
+        "tp": 37,
+        "fp": 6,
+        "tn": 26,
+        "fn": 11,
+        "precision": 0.8605,
+        "recall": 0.7708,
+        "f1_score": 0.8132,
+        "accuracy": 0.7875
+      },
+      "error_buckets_by_category": {
+        "unsafe_content": {
+          "fp": 1,
+          "fn": 8,
+          "total": 16
+        },
+        "secrets": {
+          "fp": 1,
+          "fn": 0,
+          "total": 16
+        },
+        "abuse": {
+          "fp": 1,
+          "fn": 0,
+          "total": 13
+        },
+        "injection": {
+          "fp": 1,
+          "fn": 3,
+          "total": 16
+        },
+        "pii": {
+          "fp": 2,
+          "fn": 0,
+          "total": 17
+        },
+        "general": {
+          "fp": 0,
+          "fn": 0,
+          "total": 2
+        }
+      },
+      "degraded_rate": 0.3375,
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 34,
+            "llm_called_rate": 0.425,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 15,
+            "llm_called_rate": 0.1875,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "Semantic Firewall (developer_assistant)",
+      "status": "ok",
+      "errors": 0,
+      "latency_ms": {
+        "avg": 3178.78,
+        "p50": 16.98,
+        "p95": 8036.45,
+        "timeout_rate": 0.375
+      },
+      "metrics": {
+        "tp": 37,
+        "fp": 6,
+        "tn": 26,
+        "fn": 11,
+        "precision": 0.8605,
+        "recall": 0.7708,
+        "f1_score": 0.8132,
+        "accuracy": 0.7875
+      },
+      "error_buckets_by_category": {
+        "unsafe_content": {
+          "fp": 1,
+          "fn": 8,
+          "total": 16
+        },
+        "secrets": {
+          "fp": 1,
+          "fn": 0,
+          "total": 16
+        },
+        "abuse": {
+          "fp": 1,
+          "fn": 0,
+          "total": 13
+        },
+        "injection": {
+          "fp": 1,
+          "fn": 3,
+          "total": 16
+        },
+        "pii": {
+          "fp": 2,
+          "fn": 0,
+          "total": 17
+        },
+        "general": {
+          "fp": 0,
+          "fn": 0,
+          "total": 2
+        }
+      },
+      "degraded_rate": 0.325,
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 33,
+            "llm_called_rate": 0.4125,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 16,
+            "llm_called_rate": 0.2,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "Semantic Firewall (customer_support)",
+      "status": "ok",
+      "errors": 0,
+      "latency_ms": {
+        "avg": 3156.54,
+        "p50": 111.74,
+        "p95": 8107.01,
+        "timeout_rate": 0.375
+      },
+      "metrics": {
+        "tp": 37,
+        "fp": 6,
+        "tn": 26,
+        "fn": 11,
+        "precision": 0.8605,
+        "recall": 0.7708,
+        "f1_score": 0.8132,
+        "accuracy": 0.7875
+      },
+      "error_buckets_by_category": {
+        "unsafe_content": {
+          "fp": 1,
+          "fn": 8,
+          "total": 16
+        },
+        "secrets": {
+          "fp": 1,
+          "fn": 0,
+          "total": 16
+        },
+        "abuse": {
+          "fp": 1,
+          "fn": 0,
+          "total": 13
+        },
+        "injection": {
+          "fp": 1,
+          "fn": 3,
+          "total": 16
+        },
+        "pii": {
+          "fp": 2,
+          "fn": 0,
+          "total": 17
+        },
+        "general": {
+          "fp": 0,
+          "fn": 0,
+          "total": 2
+        }
+      },
+      "degraded_rate": 0.3375,
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 34,
+            "llm_called_rate": 0.425,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 15,
+            "llm_called_rate": 0.1875,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "Semantic Firewall (research)",
+      "status": "ok",
+      "errors": 0,
+      "latency_ms": {
+        "avg": 3334.44,
+        "p50": 74.25,
+        "p95": 8052.13,
+        "timeout_rate": 0.35
+      },
+      "metrics": {
+        "tp": 37,
+        "fp": 6,
+        "tn": 26,
+        "fn": 11,
+        "precision": 0.8605,
+        "recall": 0.7708,
+        "f1_score": 0.8132,
+        "accuracy": 0.7875
+      },
+      "error_buckets_by_category": {
+        "unsafe_content": {
+          "fp": 1,
+          "fn": 8,
+          "total": 16
+        },
+        "secrets": {
+          "fp": 1,
+          "fn": 0,
+          "total": 16
+        },
+        "abuse": {
+          "fp": 1,
+          "fn": 0,
+          "total": 13
+        },
+        "injection": {
+          "fp": 1,
+          "fn": 3,
+          "total": 16
+        },
+        "pii": {
+          "fp": 2,
+          "fn": 0,
+          "total": 17
+        },
+        "general": {
+          "fp": 0,
+          "fn": 0,
+          "total": 2
+        }
+      },
+      "degraded_rate": 0.3125,
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 34,
+            "llm_called_rate": 0.425,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 17,
+            "llm_called_rate": 0.2125,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
       }
     },
     {
@@ -26,19 +412,54 @@
       "status": "ok",
       "errors": 0,
       "latency_ms": {
-        "avg": 0.41,
-        "p95": 0.12
+        "avg": 0.13,
+        "p50": 0.0,
+        "p95": 0.03,
+        "timeout_rate": 0.0
       },
       "metrics": {
-        "tp": 13,
+        "tp": 10,
         "fp": 0,
-        "tn": 33,
-        "fn": 59,
+        "tn": 32,
+        "fn": 38,
         "precision": 1.0,
-        "recall": 0.1806,
-        "f1_score": 0.3059,
-        "accuracy": 0.4381
-      }
+        "recall": 0.2083,
+        "f1_score": 0.3448,
+        "accuracy": 0.525
+      },
+      "error_buckets_by_category": {
+        "unsafe_content": {
+          "fp": 0,
+          "fn": 7,
+          "total": 16
+        },
+        "secrets": {
+          "fp": 0,
+          "fn": 7,
+          "total": 16
+        },
+        "abuse": {
+          "fp": 0,
+          "fn": 8,
+          "total": 13
+        },
+        "injection": {
+          "fp": 0,
+          "fn": 7,
+          "total": 16
+        },
+        "pii": {
+          "fp": 0,
+          "fn": 9,
+          "total": 17
+        },
+        "general": {
+          "fp": 0,
+          "fn": 0,
+          "total": 2
+        }
+      },
+      "degraded_rate": 0.0
     },
     {
       "tool": "LLM Guard",
@@ -51,6 +472,60 @@
     {
       "tool": "Guardrails AI",
       "status": "skipped_not_installed"
+    },
+    {
+      "tool": "HF Prompt Injection (ProtectAI/deberta-v3-base-prompt-injection-v2)",
+      "status": "ok",
+      "errors": 80,
+      "latency_ms": {
+        "avg": 295.69,
+        "p50": 290.27,
+        "p95": 339.39,
+        "timeout_rate": 0.0
+      },
+      "metrics": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 32,
+        "fn": 48,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.4
+      },
+      "error_buckets_by_category": {
+        "unsafe_content": {
+          "fp": 0,
+          "fn": 9,
+          "total": 16
+        },
+        "secrets": {
+          "fp": 0,
+          "fn": 11,
+          "total": 16
+        },
+        "abuse": {
+          "fp": 0,
+          "fn": 8,
+          "total": 13
+        },
+        "injection": {
+          "fp": 0,
+          "fn": 9,
+          "total": 16
+        },
+        "pii": {
+          "fp": 0,
+          "fn": 11,
+          "total": 17
+        },
+        "general": {
+          "fp": 0,
+          "fn": 0,
+          "total": 2
+        }
+      },
+      "degraded_rate": 0.0
     }
   ]
 }

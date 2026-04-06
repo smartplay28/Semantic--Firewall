@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import base64
+import tempfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -16,6 +17,12 @@ from orchestrator.orchestrator import (
     InteractionDecision,
     SemanticFirewallOrchestrator,
 )
+
+TMP_DIR = Path(tempfile.gettempdir())
+
+
+def _tmp_file(stem: str, ext: str) -> Path:
+    return TMP_DIR / f"{stem}_{uuid4().hex}{ext}"
 
 
 @dataclass
@@ -119,8 +126,34 @@ class CountingAgent(CleanAgent):
         return super().run(text, **kwargs)
 
 
+class ThresholdAwareInjectionAgent(CleanAgent):
+    def __init__(self):
+        super().__init__("Injection Detector", "INJECTION")
+        self.last_threshold = None
+
+    def run(self, text: str, **kwargs):
+        self.last_threshold = kwargs.get("confidence_threshold_override")
+        return super().run(text, **kwargs)
+
+
+class HighSeverityAgent(CleanAgent):
+    def __init__(self, name: str, threat_type: str, severity: str = "HIGH"):
+        super().__init__(name, threat_type)
+        self._severity = severity
+
+    def run(self, text: str, **kwargs):
+        return StubDetection(
+            agent_name=self.name,
+            threat_found=True,
+            threat_type=self.threat_type,
+            matched=[StubMatch(pii_type="hit")],
+            severity=self._severity,
+            summary=f"{self.threat_type.lower()} found",
+        )
+
+
 def test_orchestrator_redacts_audit_logs_and_flags_fail_closed_agent():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
+    db_path = _tmp_file("tmp_audit", ".db")
     orchestrator = SemanticFirewallOrchestrator(db_path=str(db_path))
     orchestrator.agents = {
         "PII Detector": PIIAgent(),
@@ -143,7 +176,7 @@ def test_orchestrator_redacts_audit_logs_and_flags_fail_closed_agent():
 
 
 def test_orchestrator_low_risk_gate_skips_llm_detectors():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
+    db_path = _tmp_file("tmp_audit", ".db")
     orchestrator = SemanticFirewallOrchestrator(db_path=str(db_path))
     injection = CountingAgent("Injection Detector", "INJECTION")
     unsafe = CountingAgent("Unsafe Content Detector", "UNSAFE_CONTENT")
@@ -168,7 +201,7 @@ def test_orchestrator_low_risk_gate_skips_llm_detectors():
 
 
 def test_orchestrator_agent_timeout_marks_detector_unavailable():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
+    db_path = _tmp_file("tmp_audit", ".db")
     orchestrator = SemanticFirewallOrchestrator(db_path=str(db_path))
     orchestrator.agents = {
         "PII Detector": CleanAgent("PII Detector", "PII"),
@@ -192,8 +225,8 @@ def test_orchestrator_agent_timeout_marks_detector_unavailable():
 
 
 def test_custom_rule_triggers_on_output_scan():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
-    rules_path = Path("tests") / f"tmp_rules_{uuid4().hex}.json"
+    db_path = _tmp_file("tmp_audit", ".db")
+    rules_path = _tmp_file("tmp_rules", ".json")
     manager = CustomRulesManager(str(rules_path))
     manager.add_rule(
         name="Block jailbreak phrase",
@@ -216,7 +249,7 @@ def test_custom_rule_triggers_on_output_scan():
 
 
 def test_custom_rule_exception_skips_match():
-    rules_path = Path("tests") / f"tmp_rules_{uuid4().hex}.json"
+    rules_path = _tmp_file("tmp_rules", ".json")
     manager = CustomRulesManager(str(rules_path))
     manager.add_rule(
         name="Internal codename",
@@ -233,7 +266,7 @@ def test_custom_rule_exception_skips_match():
 
 
 def test_custom_rule_draft_promotion_flow():
-    rules_path = Path("tests") / f"tmp_rules_{uuid4().hex}.json"
+    rules_path = _tmp_file("tmp_rules", ".json")
     manager = CustomRulesManager(str(rules_path))
     draft = manager.create_draft_from_suggestion(
         {
@@ -259,7 +292,7 @@ def test_custom_rule_draft_promotion_flow():
 
 
 def test_custom_rule_draft_preview():
-    rules_path = Path("tests") / f"tmp_rules_{uuid4().hex}.json"
+    rules_path = _tmp_file("tmp_rules", ".json")
     manager = CustomRulesManager(str(rules_path))
     draft = manager.create_draft_from_suggestion(
         {
@@ -281,7 +314,7 @@ def test_custom_rule_draft_preview():
 
 
 def test_workspace_scoped_rules_only_apply_in_matching_workspace():
-    rules_path = Path("tests") / f"tmp_rules_{uuid4().hex}.json"
+    rules_path = _tmp_file("tmp_rules", ".json")
     manager = CustomRulesManager(str(rules_path))
     manager.add_rule(
         name="Alpha secret phrase",
@@ -300,7 +333,7 @@ def test_workspace_scoped_rules_only_apply_in_matching_workspace():
 
 
 def test_rule_approval_flow_requires_different_approver():
-    rules_path = Path("tests") / f"tmp_rules_{uuid4().hex}.json"
+    rules_path = _tmp_file("tmp_rules", ".json")
     manager = CustomRulesManager(str(rules_path))
     draft = manager.create_draft_from_suggestion(
         {
@@ -353,7 +386,7 @@ def test_document_extractor_rejects_unsupported_extension():
 
 
 def test_audit_logger_filters_by_workspace_and_tracks_promotions():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
+    db_path = _tmp_file("tmp_audit", ".db")
     logger = AuditLogger(db_path=str(db_path))
     logger.log(
         input_text="alpha item",
@@ -396,7 +429,7 @@ def test_audit_logger_filters_by_workspace_and_tracks_promotions():
 
 
 def test_policy_preset_allowlist_downgrades_low_severity_findings():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
+    db_path = _tmp_file("tmp_audit", ".db")
     orchestrator = SemanticFirewallOrchestrator(db_path=str(db_path))
     orchestrator.agents = {
         "PII Detector": PIIAgent(),
@@ -425,10 +458,40 @@ def test_policy_preset_allowlist_downgrades_low_severity_findings():
     assert decision.policy_profile == "allowlisted_demo"
 
 
+def test_policy_profile_applies_detector_threshold_overrides():
+    db_path = _tmp_file("tmp_audit", ".db")
+    orchestrator = SemanticFirewallOrchestrator(db_path=str(db_path))
+    injection = ThresholdAwareInjectionAgent()
+    orchestrator.agents = {
+        "PII Detector": CleanAgent("PII Detector", "PII"),
+        "Secrets Detector": CleanAgent("Secrets Detector", "SECRET"),
+        "Abuse Detector": CleanAgent("Abuse Detector", "ABUSE"),
+        "Injection Detector": injection,
+        "Unsafe Content Detector": CleanAgent("Unsafe Content Detector", "UNSAFE_CONTENT"),
+        "Threat Intel Detector": CleanAgent("Threat Intel Detector", "THREAT_INTEL"),
+        "Custom Rules Detector": CleanAgent("Custom Rules Detector", "CUSTOM_RULE"),
+    }
+    orchestrator.llm_gate_enabled = False
+    orchestrator.save_policy_preset(
+        name="detector_threshold_demo",
+        description="Profile with detector threshold overrides.",
+        action_overrides={},
+        session_flag_threshold=8.0,
+        session_block_threshold=12.0,
+        allowlist_patterns=[],
+        allowlist_max_severity="LOW",
+        detector_thresholds={"Injection Detector": {"confidence_threshold": 0.77}},
+    )
+
+    orchestrator.analyze("potential injection text", policy_profile="detector_threshold_demo")
+
+    assert injection.last_threshold == 0.77
+
+
 def test_policy_draft_from_adjustment_flow():
     from orchestrator.policy_store import PolicyStore
 
-    presets_path = Path("tests") / f"tmp_policy_{uuid4().hex}.json"
+    presets_path = _tmp_file("tmp_policy", ".json")
     store = PolicyStore(str(presets_path))
     draft = store.create_draft_from_adjustment(
         {
@@ -454,7 +517,7 @@ def test_policy_draft_from_adjustment_flow():
 def test_policy_draft_preview():
     from orchestrator.policy_store import PolicyStore
 
-    presets_path = Path("tests") / f"tmp_policy_{uuid4().hex}.json"
+    presets_path = _tmp_file("tmp_policy", ".json")
     store = PolicyStore(str(presets_path))
     draft = store.create_draft_from_adjustment(
         {
@@ -476,7 +539,7 @@ def test_policy_draft_preview():
 def test_workspace_scoped_policy_lookup_prefers_matching_workspace():
     from orchestrator.policy_store import PolicyStore
 
-    presets_path = Path("tests") / f"tmp_policy_{uuid4().hex}.json"
+    presets_path = _tmp_file("tmp_policy", ".json")
     store = PolicyStore(str(presets_path))
     store.save_preset(
         name="balanced",
@@ -493,7 +556,7 @@ def test_workspace_scoped_policy_lookup_prefers_matching_workspace():
 
 
 def test_feedback_is_stored_with_audit_entry():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
+    db_path = _tmp_file("tmp_audit", ".db")
     orchestrator = SemanticFirewallOrchestrator(db_path=str(db_path))
     orchestrator.agents = {
         "PII Detector": PIIAgent(),
@@ -515,7 +578,7 @@ def test_feedback_is_stored_with_audit_entry():
 
 
 def test_interaction_analysis_detects_contradiction_and_drift():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
+    db_path = _tmp_file("tmp_audit", ".db")
     orchestrator = SemanticFirewallOrchestrator(db_path=str(db_path))
     orchestrator.agents = {
         "PII Detector": CleanAgent("PII Detector", "PII"),
@@ -545,9 +608,32 @@ def test_interaction_analysis_detects_contradiction_and_drift():
     assert "safe_prompt_unsafe_output" in alert_types
 
 
+def test_session_threshold_applies_to_current_message_immediately():
+    db_path = _tmp_file("tmp_audit", ".db")
+    orchestrator = SemanticFirewallOrchestrator(db_path=str(db_path))
+    orchestrator.agents = {
+        "PII Detector": HighSeverityAgent("PII Detector", "PII", severity="HIGH"),
+        "Secrets Detector": CleanAgent("Secrets Detector", "SECRET"),
+        "Abuse Detector": CleanAgent("Abuse Detector", "ABUSE"),
+        "Injection Detector": CleanAgent("Injection Detector", "INJECTION"),
+        "Unsafe Content Detector": CleanAgent("Unsafe Content Detector", "UNSAFE_CONTENT"),
+        "Threat Intel Detector": CleanAgent("Threat Intel Detector", "THREAT_INTEL"),
+        "Custom Rules Detector": CleanAgent("Custom Rules Detector", "CUSTOM_RULE"),
+    }
+
+    session_id = f"session-{uuid4().hex}"
+    orchestrator.session_store.threat_scores[session_id] = 9.5
+
+    decision = orchestrator.analyze("alice@example.com and other risky info", session_id=session_id)
+
+    assert decision.action == "BLOCK"
+    assert "Session BLOCKED" in decision.reason
+    assert orchestrator.session_store.get_threat_score(session_id) >= 12.5
+
+
 class StubFirewall:
     def __init__(self):
-        self.audit_logger = AuditLogger(db_path=str(Path("tests") / f"tmp_api_audit_{uuid4().hex}.db"))
+        self.audit_logger = AuditLogger(db_path=str(_tmp_file("tmp_api_audit", ".db")))
         self.cleared_sessions = []
         self.saved_presets = {}
         self.saved_policy_drafts = {}
@@ -1031,7 +1117,7 @@ def test_policy_approval_endpoints(monkeypatch):
 
 
 def test_rule_approval_endpoints():
-    rules_path = Path("tests") / f"tmp_rules_{uuid4().hex}.json"
+    rules_path = _tmp_file("tmp_rules", ".json")
     manager = CustomRulesManager(str(rules_path))
     draft = manager.create_draft_from_suggestion(
         {
@@ -1074,7 +1160,7 @@ def test_promotions_endpoint(monkeypatch):
 
 
 def test_feedback_insights_and_rule_suggestions():
-    logger = AuditLogger(db_path=str(Path("tests") / f"tmp_api_audit_{uuid4().hex}.db"))
+    logger = AuditLogger(db_path=str(_tmp_file("tmp_api_audit", ".db")))
     logger.log(
         input_text="Project Zephyr details leaked",
         action="FLAG",
@@ -1188,3 +1274,4 @@ def test_feedback_insights_and_suggestions_endpoints(monkeypatch):
     adjustments_response = client.get("/feedback/adjustments")
     assert adjustments_response.status_code == 200
     assert "adjustments" in adjustments_response.json()
+

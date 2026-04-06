@@ -1,7 +1,7 @@
 import importlib
 import time
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from orchestrator.orchestrator import SemanticFirewallOrchestrator
 
@@ -12,6 +12,7 @@ class ToolResult:
     predicted_label: str  # "threat" or "clean"
     latency_ms: float
     error: Optional[str] = None
+    meta: dict[str, Any] | None = None
 
 
 class ToolAdapter:
@@ -27,15 +28,46 @@ class ToolAdapter:
 class SemanticFirewallAdapter(ToolAdapter):
     name = "Semantic Firewall"
 
-    def __init__(self):
+    def __init__(self, policy_profile: str = "balanced"):
         self.orchestrator = SemanticFirewallOrchestrator()
+        self.policy_profile = policy_profile
+        self.name = f"Semantic Firewall ({policy_profile})"
 
     def predict(self, text: str) -> ToolResult:
         start = time.perf_counter()
-        decision = self.orchestrator.analyze(text=text, policy_profile="balanced", workspace_id="default")
+        decision = self.orchestrator.analyze(
+            text=text,
+            policy_profile=self.policy_profile,
+            workspace_id="default",
+        )
         latency = (time.perf_counter() - start) * 1000
         predicted = "threat" if decision.action != "ALLOW" else "clean"
-        return ToolResult(tool=self.name, predicted_label=predicted, latency_ms=latency)
+        llm_detector_stats = {}
+        timeout_events = 0
+        for agent_result in decision.agent_results:
+            if agent_result.agent_name not in {"Injection Detector", "Unsafe Content Detector"}:
+                if (agent_result.meta or {}).get("error_type") == "timeout":
+                    timeout_events += 1
+                continue
+            meta = agent_result.meta or {}
+            llm_detector_stats[agent_result.agent_name] = {
+                "llm_called": bool(meta.get("llm_called", False)),
+                "regex_only": bool(meta.get("regex_only", False)),
+                "llm_skipped_reason": meta.get("llm_skipped_reason"),
+                "skipped_by_orchestrator_gate": bool(meta.get("skipped_by_orchestrator_gate", False)),
+            }
+            if meta.get("error_type") == "timeout":
+                timeout_events += 1
+        return ToolResult(
+            tool=self.name,
+            predicted_label=predicted,
+            latency_ms=latency,
+            meta={
+                "llm_detectors": llm_detector_stats,
+                "timeout_events": timeout_events,
+                "degraded": bool(getattr(decision, "degraded", False)),
+            },
+        )
 
 
 class RegexHeuristicBaselineAdapter(ToolAdapter):
@@ -89,6 +121,63 @@ class OptionalImportAdapter(ToolAdapter):
             return ToolResult(tool=self.name, predicted_label="clean", latency_ms=latency, error=str(exc))
 
 
+class HuggingFacePromptInjectionAdapter(ToolAdapter):
+    def __init__(self, model_name: str = "ProtectAI/deberta-v3-base-prompt-injection-v2"):
+        self.model_name = model_name
+        self.name = f"HF Prompt Injection ({model_name})"
+        self.backend = "api"
+        self._available = importlib.util.find_spec("huggingface_hub") is not None
+        self._classifier = None
+        self._load_error = None
+        self._token = __import__("os").getenv("HF_TOKEN") or __import__("os").getenv("HUGGINGFACEHUB_API_TOKEN")
+
+    def available(self) -> bool:
+        return self._available and bool(self._token)
+
+    def _ensure_loaded(self):
+        if self._classifier is not None or self._load_error is not None:
+            return
+        try:
+            from huggingface_hub import InferenceClient
+
+            self._classifier = InferenceClient(
+                provider="hf-inference",
+                api_key=self._token,
+            )
+        except Exception as exc:
+            self._load_error = str(exc)
+
+    def predict(self, text: str) -> ToolResult:
+        if not self._available:
+            return ToolResult(tool=self.name, predicted_label="clean", latency_ms=0.0, error="not_installed")
+        self._ensure_loaded()
+        if self._classifier is None:
+            return ToolResult(
+                tool=self.name,
+                predicted_label="clean",
+                latency_ms=0.0,
+                error=self._load_error or "load_failed",
+            )
+
+        start = time.perf_counter()
+        try:
+            result = self._classifier.text_classification(text[:2000], model=self.model_name)
+            top = result[0] if result else {}
+            label = str(top.get("label", "")).strip().lower()
+            score = float(top.get("score", 0.0))
+            predicted = "threat" if label in {"1", "label_1", "injection", "injection-detected", "prompt_injection"} else "clean"
+            latency = (time.perf_counter() - start) * 1000
+            return ToolResult(
+                tool=self.name,
+                predicted_label=predicted,
+                latency_ms=latency,
+                meta={"label": label, "score": score, "backend": self.backend},
+            )
+        except Exception as exc:
+            latency = (time.perf_counter() - start) * 1000
+            return ToolResult(tool=self.name, predicted_label="clean", latency_ms=latency, error=str(exc))
+
+
 def build_optional_market_adapters() -> list[ToolAdapter]:
     # These are intentionally conservative wrappers because different versions
     # of external libs have different APIs. If unavailable, adapter is skipped.
@@ -113,4 +202,5 @@ def build_optional_market_adapters() -> list[ToolAdapter]:
         OptionalImportAdapter("LLM Guard", "llm_guard", llm_guard_predict),
         OptionalImportAdapter("Rebuff", "rebuff", rebuff_predict),
         OptionalImportAdapter("Guardrails AI", "guardrails", guardrails_predict),
+        HuggingFacePromptInjectionAdapter(),
     ]

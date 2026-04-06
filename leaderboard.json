@@ -1,24 +1,218 @@
 {
   "generated_by": "benchmarking/run_market_benchmark.py",
-  "dataset": "datasets\\benchmark_from_tests.jsonl",
+  "dataset": "datasets\\golden_eval_set.jsonl",
   "rows": [
     {
-      "tool": "Semantic Firewall",
-      "overall_score": 62.16,
-      "precision": 0.9,
-      "recall": 0.75,
-      "f1_score": 0.8182,
-      "avg_latency_ms": 781.0,
-      "updated_at": "2026-03-30"
+      "tool": "Semantic Firewall (balanced)",
+      "overall_score": 61.44,
+      "precision": 0.8605,
+      "recall": 0.7708,
+      "f1_score": 0.8132,
+      "avg_latency_ms": 3151.11,
+      "p50_latency_ms": 53.28,
+      "p95_latency_ms": 8095.48,
+      "updated_at": "2026-03-30",
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 34,
+            "llm_called_rate": 0.425,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 14,
+            "llm_called_rate": 0.175,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "Semantic Firewall (strict)",
+      "overall_score": 61.44,
+      "precision": 0.8605,
+      "recall": 0.7708,
+      "f1_score": 0.8132,
+      "avg_latency_ms": 3020.5,
+      "p50_latency_ms": 18.57,
+      "p95_latency_ms": 8036.0,
+      "updated_at": "2026-03-30",
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 34,
+            "llm_called_rate": 0.425,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 15,
+            "llm_called_rate": 0.1875,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "Semantic Firewall (developer_assistant)",
+      "overall_score": 61.44,
+      "precision": 0.8605,
+      "recall": 0.7708,
+      "f1_score": 0.8132,
+      "avg_latency_ms": 3178.78,
+      "p50_latency_ms": 16.98,
+      "p95_latency_ms": 8036.45,
+      "updated_at": "2026-03-30",
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 33,
+            "llm_called_rate": 0.4125,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 16,
+            "llm_called_rate": 0.2,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "Semantic Firewall (customer_support)",
+      "overall_score": 61.44,
+      "precision": 0.8605,
+      "recall": 0.7708,
+      "f1_score": 0.8132,
+      "avg_latency_ms": 3156.54,
+      "p50_latency_ms": 111.74,
+      "p95_latency_ms": 8107.01,
+      "updated_at": "2026-03-31",
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 34,
+            "llm_called_rate": 0.425,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 15,
+            "llm_called_rate": 0.1875,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "Semantic Firewall (research)",
+      "overall_score": 61.44,
+      "precision": 0.8605,
+      "recall": 0.7708,
+      "f1_score": 0.8132,
+      "avg_latency_ms": 3334.44,
+      "p50_latency_ms": 74.25,
+      "p95_latency_ms": 8052.13,
+      "updated_at": "2026-03-31",
+      "llm_detector_metrics": {
+        "samples_with_telemetry": 80,
+        "detectors": {
+          "Injection Detector": {
+            "llm_called_count": 34,
+            "llm_called_rate": 0.425,
+            "regex_only_count": 0,
+            "regex_only_rate": 0.0,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 6
+            }
+          },
+          "Unsafe Content Detector": {
+            "llm_called_count": 17,
+            "llm_called_rate": 0.2125,
+            "regex_only_count": 1,
+            "regex_only_rate": 0.0125,
+            "skipped_by_orchestrator_gate_count": 37,
+            "skipped_by_orchestrator_gate_rate": 0.4625,
+            "llm_skipped_reason_counts": {
+              "high_conf_regex": 1
+            }
+          }
+        }
+      }
     },
     {
       "tool": "Regex Heuristic Baseline",
-      "overall_score": 44.77,
+      "overall_score": 47.43,
       "precision": 1.0,
-      "recall": 0.1806,
-      "f1_score": 0.3059,
-      "avg_latency_ms": 0.41,
-      "updated_at": "2026-03-30"
+      "recall": 0.2083,
+      "f1_score": 0.3448,
+      "avg_latency_ms": 0.13,
+      "p50_latency_ms": 0.0,
+      "p95_latency_ms": 0.03,
+      "updated_at": "2026-03-31"
+    },
+    {
+      "tool": "HF Prompt Injection (ProtectAI/deberta-v3-base-prompt-injection-v2)",
+      "overall_score": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "avg_latency_ms": 295.69,
+      "p50_latency_ms": 290.27,
+      "p95_latency_ms": 339.39,
+      "updated_at": "2026-03-31"
     }
   ]
 }

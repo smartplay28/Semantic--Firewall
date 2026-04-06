@@ -2,3 +2,9 @@
 .pytest_cache/
 __pycache__/
 *.pyc
+*.db
+results/
+leaderboard.json
+threshold_tuning_recommendations.json
+tests/tmp_*.db
+tests/tmp_*.json

@@ -132,3 +132,57 @@ class TestInjectionEdgeCases:
         # LLM should catch this even if regex doesn't
         # We just check it runs without error
         assert isinstance(result.threat_found, bool)
+
+
+class TestInjectionHuggingFaceSignal:
+
+    def test_hf_api_signal_can_flag_injection_without_llm(self, monkeypatch):
+        monkeypatch.setenv("SEMANTIC_FIREWALL_INJECTION_HF_ENABLED", "1")
+        monkeypatch.setenv("SEMANTIC_FIREWALL_INJECTION_HF_BACKEND", "api")
+        monkeypatch.setenv("SEMANTIC_FIREWALL_INJECTION_HF_BORDERLINE_ONLY", "0")
+        agent = InjectionDetectorAgent()
+
+        class FakeClient:
+            def text_classification(self, _text, model=None):
+                assert model is not None
+                return [{"label": "LABEL_1", "score": 0.97}]
+
+        monkeypatch.setattr(agent, "_get_hf_client", lambda: FakeClient())
+        result = agent.run("A subtle injection that regex misses")
+
+        assert result.threat_found is True
+        assert result.meta["hf_called"] is True
+        assert result.meta["hf_match_count"] == 1
+        assert result.meta["hf_backend"] == "api"
+
+    def test_hf_api_signal_respects_confidence_threshold(self, monkeypatch):
+        monkeypatch.setenv("SEMANTIC_FIREWALL_INJECTION_HF_ENABLED", "1")
+        monkeypatch.setenv("SEMANTIC_FIREWALL_INJECTION_HF_BACKEND", "api")
+        monkeypatch.setenv("SEMANTIC_FIREWALL_INJECTION_HF_BORDERLINE_ONLY", "0")
+        monkeypatch.setenv("SEMANTIC_FIREWALL_INJECTION_HF_CONF_THRESHOLD", "0.95")
+        agent = InjectionDetectorAgent()
+
+        class FakeClient:
+            def text_classification(self, _text, model=None):
+                assert model is not None
+                return [{"label": "LABEL_1", "score": 0.70}]
+
+        monkeypatch.setattr(agent, "_get_hf_client", lambda: FakeClient())
+        result = agent.run("Low-confidence suspicious prompt")
+
+        assert result.meta["hf_called"] is True
+        assert result.meta["hf_match_count"] == 0
+
+    def test_hf_api_skips_clean_non_borderline_prompt(self, monkeypatch):
+        monkeypatch.setenv("SEMANTIC_FIREWALL_INJECTION_HF_ENABLED", "1")
+        monkeypatch.setenv("SEMANTIC_FIREWALL_INJECTION_HF_BACKEND", "api")
+        agent = InjectionDetectorAgent()
+
+        def fail_if_called():
+            raise AssertionError("HF client should not be called for a clean non-borderline prompt")
+
+        monkeypatch.setattr(agent, "_get_hf_client", fail_if_called)
+        result = agent.run("What is the capital of France?")
+
+        assert result.meta["hf_called"] is False
+        assert result.meta["hf_skip_reason"] == "not_borderline"
