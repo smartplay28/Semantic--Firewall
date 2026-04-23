@@ -1,4 +1,3 @@
-import tempfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -9,15 +8,12 @@ from agents.threat_intel_detector import ThreatIntelDetectorAgent
 from orchestrator.orchestrator import SemanticFirewallOrchestrator
 from orchestrator.threat_intel import ThreatIntelFeedManager
 
-TMP_DIR = Path(tempfile.gettempdir())
+def _tmp_file(workspace_tmp_path: Path, stem: str, ext: str) -> Path:
+    return workspace_tmp_path / f"{stem}_{uuid4().hex}{ext}"
 
 
-def _tmp_file(stem: str, ext: str) -> Path:
-    return TMP_DIR / f"{stem}_{uuid4().hex}{ext}"
-
-
-def test_threat_intel_detector_matches_known_signature():
-    feed_path = _tmp_file("tmp_threat_intel", ".json")
+def test_threat_intel_detector_matches_known_signature(workspace_tmp_path: Path):
+    feed_path = _tmp_file(workspace_tmp_path, "tmp_threat_intel", ".json")
     manager = ThreatIntelFeedManager(str(feed_path))
     manager.add_entry(
         name="Known jailbreak token",
@@ -38,9 +34,9 @@ def test_threat_intel_detector_matches_known_signature():
     assert any(match.intel_id for match in result.matched)
 
 
-def test_orchestrator_applies_threat_intel_decision():
-    db_path = _tmp_file("tmp_audit", ".db")
-    feed_path = _tmp_file("tmp_threat_intel", ".json")
+def test_orchestrator_applies_threat_intel_decision(workspace_tmp_path: Path):
+    db_path = _tmp_file(workspace_tmp_path, "tmp_audit", ".db")
+    feed_path = _tmp_file(workspace_tmp_path, "tmp_threat_intel", ".json")
     manager = ThreatIntelFeedManager(str(feed_path))
     manager.add_entry(
         name="Remote code execution marker",

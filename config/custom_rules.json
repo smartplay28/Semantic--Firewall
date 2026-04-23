@@ -1,0 +1,73 @@
+[
+  {
+    "id": "7814136a361b488cb334bdbeef2d12d2",
+    "name": "Allowlist Rule",
+    "pattern": "Project Falcon",
+    "description": "Test allowlist",
+    "severity": "LOW",
+    "threat_type": "CUSTOM_RULE",
+    "scope": "both",
+    "redact": false,
+    "exceptions": [
+      "public demo"
+    ],
+    "tags": [
+      "internal",
+      "demo"
+    ],
+    "enabled": true,
+    "status": "active",
+    "source": "manual",
+    "support": 0,
+    "workspace_id": "global",
+    "approval_status": "approved",
+    "approval_requested_by": "",
+    "approval_approved_by": ""
+  },
+  {
+    "id": "df20c6c5de564bc3bf65123fd6b9bfda",
+    "name": "Suggested rule: Project Zephyr",
+    "pattern": "Project\\ Zephyr",
+    "description": "Suggested from 3 false-negative feedback item(s).",
+    "severity": "HIGH",
+    "threat_type": "CUSTOM_RULE",
+    "scope": "both",
+    "redact": false,
+    "exceptions": [],
+    "tags": [
+      "suggested",
+      "feedback"
+    ],
+    "enabled": true,
+    "status": "active",
+    "source": "feedback_suggestion",
+    "support": 3,
+    "workspace_id": "global",
+    "approval_status": "approved",
+    "approval_requested_by": "",
+    "approval_approved_by": ""
+  },
+  {
+    "id": "2f2a82f0ea8440d6864f544d62873432",
+    "name": "Suggested rule: Project Zephyr",
+    "pattern": "Project\\ Zephyr",
+    "description": "Suggested from 3 false-negative feedback item(s).",
+    "severity": "HIGH",
+    "threat_type": "CUSTOM_RULE",
+    "scope": "both",
+    "redact": false,
+    "exceptions": [],
+    "tags": [
+      "suggested",
+      "feedback"
+    ],
+    "enabled": true,
+    "status": "active",
+    "source": "feedback_suggestion",
+    "support": 3,
+    "workspace_id": "default",
+    "approval_status": "not_requested",
+    "approval_requested_by": "",
+    "approval_approved_by": ""
+  }
+]

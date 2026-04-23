@@ -29,7 +29,7 @@ class DetectionResult:
 
 
 class ThreatIntelDetectorAgent:
-    def __init__(self, feed_path: str = "threat_intel_feed.json"):
+    def __init__(self, feed_path: str | None = None):
         self.name = "Threat Intel Detector"
         self.feed_manager = ThreatIntelFeedManager(feed_path=feed_path)
         self.severity_weights = {
@@ -114,4 +114,3 @@ class ThreatIntelDetectorAgent:
             severity=severity,
             summary=summary,
         )
-

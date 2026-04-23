@@ -2,13 +2,16 @@ import json
 from pathlib import Path
 from typing import List, Optional
 
+from orchestrator.paths import config_path
+
 
 class WorkspaceStore:
-    def __init__(self, store_path: str = "workspaces.json"):
-        self.store_path = Path(store_path)
+    def __init__(self, store_path: str | None = None):
+        self.store_path = Path(store_path) if store_path else config_path("workspaces.json")
         self._ensure_store()
 
     def _ensure_store(self):
+        self.store_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.store_path.exists():
             self.store_path.write_text("[]", encoding="utf-8")
 

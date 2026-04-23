@@ -95,7 +95,7 @@ def suggest_agent_confidence_thresholds(adjustments: list[dict], min_count: int)
 
 def main():
     parser = argparse.ArgumentParser(description="Suggest policy threshold tuning from audit feedback.")
-    parser.add_argument("--db-path", default="audit.db")
+    parser.add_argument("--db-path", default="var/audit.db")
     parser.add_argument("--workspace-id", default=None)
     parser.add_argument("--min-count", type=int, default=2)
     parser.add_argument("--limit", type=int, default=200)

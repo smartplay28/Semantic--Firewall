@@ -1,5 +1,4 @@
 import hashlib
-import os
 import re
 import threading
 import time
@@ -24,6 +23,9 @@ from orchestrator.explainability import ExplainabilityGenerator, ExplainabilityR
 from orchestrator.alerting import AlertManager
 from orchestrator.compliance import ComplianceProfileManager
 from orchestrator.session_patterns import MultiTurnAttackDetector, EnhancedSessionStore
+from orchestrator.settings import OrchestratorSettings, load_calibration_pair
+from orchestrator.paths import var_path
+from orchestrator.semantic_cache import SemanticCache
 
 
 @dataclass
@@ -81,8 +83,10 @@ class CacheEntry:
 
 
 class SemanticFirewallOrchestrator:
-    def __init__(self, db_path: str = "audit.db"):
+    def __init__(self, db_path: str | None = None):
         print("[Orchestrator] Initializing all agents...")
+        settings = OrchestratorSettings.from_env()
+        resolved_db_path = db_path or str(var_path("audit.db"))
         self.agents = {
             "PII Detector": PIIDetectorAgent(),
             "Secrets Detector": SecretsDetectorAgent(),
@@ -161,19 +165,19 @@ class SemanticFirewallOrchestrator:
         }
         self.action_priority = ["ALLOW", "FLAG", "REDACT", "BLOCK"]
         self.session_store = SessionStore()
-        self.audit_logger = AuditLogger(db_path=db_path)
+        self.audit_logger = AuditLogger(db_path=resolved_db_path)
         self.policy_store = PolicyStore()
         self._cache: Dict[str, CacheEntry] = {}
-        self._cache_max_size = int(os.getenv("SEMANTIC_FIREWALL_CACHE_MAX_SIZE", "500"))
-        self._cache_ttl_sec = float(os.getenv("SEMANTIC_FIREWALL_CACHE_TTL_SEC", "300"))
-        self._similar_cache_enabled = os.getenv("SEMANTIC_FIREWALL_SIMILAR_CACHE_ENABLED", "1") != "0"
-        self._similar_cache_min_chars = int(os.getenv("SEMANTIC_FIREWALL_SIMILAR_CACHE_MIN_CHARS", "40"))
+        self._cache_max_size = settings.cache_max_size
+        self._cache_ttl_sec = settings.cache_ttl_sec
+        self._similar_cache_enabled = settings.similar_cache_enabled
+        self._similar_cache_min_chars = settings.similar_cache_min_chars
         self._cache_lock = threading.Lock()
-        self.ensemble_enabled = os.getenv("SEMANTIC_FIREWALL_ENSEMBLE_ENABLED", "1") != "0"
-        self.ensemble_flag_threshold = float(os.getenv("SEMANTIC_FIREWALL_ENSEMBLE_FLAG_THRESHOLD", "1.8"))
-        self.ensemble_redact_threshold = float(os.getenv("SEMANTIC_FIREWALL_ENSEMBLE_REDACT_THRESHOLD", "2.6"))
-        self.ensemble_block_threshold = float(os.getenv("SEMANTIC_FIREWALL_ENSEMBLE_BLOCK_THRESHOLD", "3.5"))
-        self.calibration_enabled = os.getenv("SEMANTIC_FIREWALL_CALIBRATION_ENABLED", "1") != "0"
+        self.ensemble_enabled = settings.ensemble_enabled
+        self.ensemble_flag_threshold = settings.ensemble_flag_threshold
+        self.ensemble_redact_threshold = settings.ensemble_redact_threshold
+        self.ensemble_block_threshold = settings.ensemble_block_threshold
+        self.calibration_enabled = settings.calibration_enabled
         self._calibration_params = {
             "DEFAULT": self._calibration_pair_from_env("DEFAULT", 1.0, 0.0),
             "PII": self._calibration_pair_from_env("PII", 1.0, 0.0),
@@ -185,26 +189,26 @@ class SemanticFirewallOrchestrator:
             "CUSTOM_RULE": self._calibration_pair_from_env("CUSTOM_RULE", 1.0, 0.0),
         }
         self._ensemble_weights = {
-            "PII Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_PII", "1.0")),
-            "Secrets Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_SECRETS", "1.2")),
-            "Abuse Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_ABUSE", "1.0")),
-            "Injection Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_INJECTION", "1.3")),
-            "Unsafe Content Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_UNSAFE_CONTENT", "1.3")),
-            "Threat Intel Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_THREAT_INTEL", "1.1")),
-            "Custom Rules Detector": float(os.getenv("SEMANTIC_FIREWALL_WEIGHT_CUSTOM_RULES", "1.0")),
+            "PII Detector": settings.weight_pii,
+            "Secrets Detector": settings.weight_secrets,
+            "Abuse Detector": settings.weight_abuse,
+            "Injection Detector": settings.weight_injection,
+            "Unsafe Content Detector": settings.weight_unsafe_content,
+            "Threat Intel Detector": settings.weight_threat_intel,
+            "Custom Rules Detector": settings.weight_custom_rules,
         }
-        self.llm_gate_enabled = os.getenv("SEMANTIC_FIREWALL_LLM_GATE_ENABLED", "1") != "0"
-        self.llm_gate_threshold = float(os.getenv("SEMANTIC_FIREWALL_LLM_GATE_THRESHOLD", "1.0"))
-        self.disable_llm_detectors = os.getenv("SEMANTIC_FIREWALL_DISABLE_LLM_DETECTORS", "0") == "1"
+        self.llm_gate_enabled = settings.llm_gate_enabled
+        self.llm_gate_threshold = settings.llm_gate_threshold
+        self.disable_llm_detectors = settings.disable_llm_detectors
         self.agent_timeouts = {
-            "default": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_DEFAULT_SEC", "8.0")),
-            "PII Detector": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_PII_SEC", "6.0")),
-            "Secrets Detector": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_SECRETS_SEC", "6.0")),
-            "Abuse Detector": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_ABUSE_SEC", "6.0")),
-            "Threat Intel Detector": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_THREAT_INTEL_SEC", "6.0")),
-            "Custom Rules Detector": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_CUSTOM_RULES_SEC", "6.0")),
-            "Injection Detector": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_INJECTION_SEC", "8.0")),
-            "Unsafe Content Detector": float(os.getenv("SEMANTIC_FIREWALL_AGENT_TIMEOUT_UNSAFE_CONTENT_SEC", "8.0")),
+            "default": settings.agent_timeout_default_sec,
+            "PII Detector": settings.agent_timeout_pii_sec,
+            "Secrets Detector": settings.agent_timeout_secrets_sec,
+            "Abuse Detector": settings.agent_timeout_abuse_sec,
+            "Threat Intel Detector": settings.agent_timeout_threat_intel_sec,
+            "Custom Rules Detector": settings.agent_timeout_custom_rules_sec,
+            "Injection Detector": settings.agent_timeout_injection_sec,
+            "Unsafe Content Detector": settings.agent_timeout_unsafe_content_sec,
         }
 
         # Initialize production feature modules
@@ -222,14 +226,13 @@ class SemanticFirewallOrchestrator:
             injection_agent_getter=lambda: self.agents["Injection Detector"],
             action_rank=self._action_rank,
         )
+        self.semantic_cache = SemanticCache(db_path=str(var_path("chroma_db")))
         print("[Orchestrator] All production modules ready.")
 
         print("[Orchestrator] All agents ready.\n")
 
     def _calibration_pair_from_env(self, key: str, slope_default: float, bias_default: float) -> tuple[float, float]:
-        slope = float(os.getenv(f"SEMANTIC_FIREWALL_CALIBRATION_{key}_SLOPE", str(slope_default)))
-        bias = float(os.getenv(f"SEMANTIC_FIREWALL_CALIBRATION_{key}_BIAS", str(bias_default)))
-        return slope, bias
+        return load_calibration_pair(key, slope_default, bias_default)
 
     def _agent_timeout(self, name: str) -> float:
         return max(0.05, float(self.agent_timeouts.get(name, self.agent_timeouts["default"])))
@@ -415,7 +418,13 @@ class SemanticFirewallOrchestrator:
             return agent.run(text, scan_target=scan_target, workspace_id=workspace_id)
         if name == "Threat Intel Detector":
             return agent.run(text, scan_target=scan_target)
-        if name in {"Injection Detector", "Unsafe Content Detector"}:
+        if name == "Injection Detector":
+            return agent.run(
+                text,
+                scan_target=scan_target,
+                confidence_threshold_override=detector_config.get("confidence_threshold"),
+            )
+        if name == "Unsafe Content Detector":
             return agent.run(
                 text,
                 confidence_threshold_override=detector_config.get("confidence_threshold"),
@@ -681,51 +690,85 @@ class SemanticFirewallOrchestrator:
                 return cached
 
         print(f"[Orchestrator] Analyzing {scan_target} ({len(text)} chars)...")
-        print(f"[Orchestrator] Running all {len(self.agents)} agents in parallel...\n")
+        
+        allowlist_hit = self.semantic_cache.check_allowlist(text)
+        if allowlist_hit:
+            print(f"[Orchestrator] Semantic Allowlist hit! (reason: {allowlist_hit['reason']}) Bypassing agents.")
+            elapsed = (time.time() - start_time) * 1000
+            decision = FirewallDecision(
+                action="ALLOW",
+                reason=f"Semantically matched a known safe prompt (Allowlist: {allowlist_hit['reason']}).",
+                triggered_agents=[],
+                overall_severity="NONE",
+                redacted_text=text,
+                latency_ms=elapsed,
+                scan_target=scan_target,
+                session_id=session_id
+            )
+            # Log it to DB as an ALLOWLIST bypass
+            if self.logger:
+                self.logger.log_decision(decision, text)
+            return decision
 
-        cheap_agents = [name for name in self.agents if name not in self.llm_agents]
-        llm_agents = [name for name in self.agents if name in self.llm_agents]
-        detector_threshold_overrides = self._detector_threshold_overrides(policy_profile, workspace_id=workspace_id)
-        cheap_results = self._run_agents_parallel(
-            cheap_agents,
-            text,
-            scan_target,
-            workspace_id,
-            detector_threshold_overrides=detector_threshold_overrides,
-        )
-        run_llm_agents, llm_gate_score = self._should_run_llm_agents(text, cheap_results)
-
-        agent_results: List[AgentResult] = list(cheap_results)
-        if run_llm_agents:
-            llm_results = self._run_agents_parallel(
-                llm_agents,
+        semantic_hit = self.semantic_cache.check_threat(text)
+        if semantic_hit:
+            print(f"[Orchestrator] Semantic Cache hit! Identified as {semantic_hit['threat_type']}")
+            agent_results = [
+                AgentResult(
+                    agent_name="Semantic Cache",
+                    threat_found=True,
+                    threat_type=semantic_hit["threat_type"],
+                    severity=semantic_hit["severity"],
+                    summary=f"Semantically matched a known threat (similarity: {semantic_hit['similarity_score']:.2f}). Originally detected by {semantic_hit['source_agent']}.",
+                    matched=[],
+                    meta={"semantic_cache_hit": True, "distance": semantic_hit["distance"]}
+                )
+            ]
+        else:
+            print(f"[Orchestrator] Running all {len(self.agents)} agents in parallel...\n")
+            cheap_agents = [name for name in self.agents if name not in self.llm_agents]
+            llm_agents = [name for name in self.agents if name in self.llm_agents]
+            detector_threshold_overrides = self._detector_threshold_overrides(policy_profile, workspace_id=workspace_id)
+            cheap_results = self._run_agents_parallel(
+                cheap_agents,
                 text,
                 scan_target,
                 workspace_id,
                 detector_threshold_overrides=detector_threshold_overrides,
             )
-            agent_results.extend(llm_results)
-        else:
-            print("[Orchestrator] LLM gate closed - skipping expensive detectors for low-risk content.")
-            for name in llm_agents:
-                skipped = AgentResult(
-                    agent_name=name,
-                    threat_found=False,
-                    threat_type="NONE",
-                    severity="NONE",
-                    summary="Skipped by low-risk gate.",
-                    matched=[],
-                    agent_available=True,
-                    fail_closed=False,
-                    meta={
-                        "llm_called": False,
-                        "regex_only": False,
-                        "skipped_by_orchestrator_gate": True,
-                        "llm_gate_score": round(llm_gate_score, 3),
-                        "llm_gate_threshold": self.llm_gate_threshold,
-                    },
+            run_llm_agents, llm_gate_score = self._should_run_llm_agents(text, cheap_results)
+
+            agent_results: List[AgentResult] = list(cheap_results)
+            if run_llm_agents:
+                llm_results = self._run_agents_parallel(
+                    llm_agents,
+                    text,
+                    scan_target,
+                    workspace_id,
+                    detector_threshold_overrides=detector_threshold_overrides,
                 )
-                agent_results.append(skipped)
+                agent_results.extend(llm_results)
+            else:
+                print("[Orchestrator] LLM gate closed - skipping expensive detectors for low-risk content.")
+                for name in llm_agents:
+                    skipped = AgentResult(
+                        agent_name=name,
+                        threat_found=False,
+                        threat_type="NONE",
+                        severity="NONE",
+                        summary="Skipped by low-risk gate.",
+                        matched=[],
+                        agent_available=True,
+                        fail_closed=False,
+                        meta={
+                            "llm_called": False,
+                            "regex_only": False,
+                            "skipped_by_orchestrator_gate": True,
+                            "llm_gate_score": round(llm_gate_score, 3),
+                            "llm_gate_threshold": self.llm_gate_threshold,
+                        },
+                    )
+                    agent_results.append(skipped)
 
         agent_results = self._apply_allowlist(text, agent_results, policy_profile, workspace_id=workspace_id)
         self._attach_calibrated_probabilities(agent_results)
@@ -890,6 +933,16 @@ class SemanticFirewallOrchestrator:
 
         if not session_id:
             self._save_to_cache(text, decision, scan_target, policy_profile, workspace_id)
+
+        # Update semantic cache with any new LLM-confirmed threats
+        for res in agent_results:
+            if res.threat_found and res.agent_name in self.llm_agents and res.threat_type != "NONE":
+                self.semantic_cache.add_threat(
+                    text=text,
+                    threat_type=res.threat_type,
+                    severity=res.severity,
+                    source_agent=res.agent_name
+                )
 
         self._print_decision(decision)
         return decision

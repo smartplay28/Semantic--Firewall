@@ -1,5 +1,7 @@
 .env
 .pytest_cache/
+.pytest_tmp/
+pytest_tmp/
 __pycache__/
 *.pyc
 *.db
@@ -8,3 +10,5 @@ leaderboard.json
 threshold_tuning_recommendations.json
 tests/tmp_*.db
 tests/tmp_*.json
+tests/.tmp/
+var/*.db

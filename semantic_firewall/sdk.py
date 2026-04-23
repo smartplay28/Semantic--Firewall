@@ -4,6 +4,7 @@ import urllib.request
 from typing import Any, Dict, Optional
 
 from orchestrator.orchestrator import SemanticFirewallOrchestrator
+from orchestrator.paths import var_path
 
 
 class Firewall:
@@ -21,14 +22,15 @@ class Firewall:
     def __init__(
         self,
         api_base_url: Optional[str] = None,
-        db_path: str = "audit.db",
+        db_path: Optional[str] = None,
         default_policy_profile: str = "balanced",
         default_workspace_id: str = "default",
     ):
         self.api_base_url = api_base_url.rstrip("/") if api_base_url else None
         self.default_policy_profile = default_policy_profile
         self.default_workspace_id = default_workspace_id
-        self._local = None if self.api_base_url else SemanticFirewallOrchestrator(db_path=db_path)
+        resolved_db_path = db_path or str(var_path("audit.db"))
+        self._local = None if self.api_base_url else SemanticFirewallOrchestrator(db_path=resolved_db_path)
 
     def _post_json(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         assert self.api_base_url is not None
@@ -124,3 +126,32 @@ class Firewall:
             },
         )
 
+    def stream_output(
+        self,
+        stream: Any,
+        policy_profile: Optional[str] = None,
+        workspace_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        chunk_size: int = 150
+    ):
+        """
+        Intercepts an async generator (e.g. LLM output stream) and proxy streams it,
+        running fast firewall heuristics periodically. If unsafe content is detected mid-stream,
+        it yields an interruption message and terminates the stream immediately.
+        """
+        if not self._local:
+            raise NotImplementedError("stream_output is currently only supported in local mode")
+            
+        from orchestrator.streaming import StreamingFirewallProxy
+        
+        profile = policy_profile or self.default_policy_profile
+        workspace = workspace_id or self.default_workspace_id
+        
+        proxy = StreamingFirewallProxy(self._local, chunk_size=chunk_size)
+        return proxy.proxy_stream(
+            stream, 
+            scan_target="output",
+            policy_profile=profile,
+            workspace_id=workspace,
+            session_id=session_id
+        )

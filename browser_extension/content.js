@@ -347,6 +347,52 @@ window.addEventListener("submit", (event) => {
   handleSubmit(event);
 }, true);
 
+// --- PLATFORM SPECIFIC INTERCEPTORS ---
+const PLATFORM_SELECTORS = [
+  'button[data-testid="send-button"]', // ChatGPT
+  'button[aria-label="Send message"]', // Claude
+  'button.send-button', // General fallback
+];
+
+async function handlePlatformClick(event) {
+  // Check if click was on or inside a known "Send" button
+  let targetBtn = null;
+  for (const selector of PLATFORM_SELECTORS) {
+    targetBtn = event.target.closest(selector);
+    if (targetBtn) break;
+  }
+
+  if (!targetBtn) return;
+
+  // Find the nearest editable field (the chat box)
+  const editable = getPrimaryEditableFromForm(document.body);
+  if (!editable) return;
+
+  const text = getEditableText(editable);
+  if (!text || text.length < MIN_SCAN_CHARS) return;
+
+  // If we haven't scanned it yet, pause the click!
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+
+  const blocked = await shouldBlockElement(editable);
+  if (blocked) {
+    showBanner("Semantic Firewall blocked this prompt before sending to the AI.", "block", 3200);
+    return;
+  }
+
+  // If safe, temporarily remove our interceptor and click the button programmatically
+  document.removeEventListener("click", handlePlatformClick, true);
+  targetBtn.click();
+  // Re-attach interceptor after click goes through
+  setTimeout(() => {
+    document.addEventListener("click", handlePlatformClick, true);
+  }, 100);
+}
+
+document.addEventListener("click", handlePlatformClick, true);
+
 document.addEventListener("keydown", (event) => {
   handleKeydown(event);
 }, true);

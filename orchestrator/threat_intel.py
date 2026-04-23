@@ -6,12 +6,14 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from uuid import uuid4
 
+from orchestrator.paths import config_path
+
 
 class ThreatIntelFeedManager:
     """Persistent store for threat intelligence signatures."""
 
-    def __init__(self, feed_path: str = "threat_intel_feed.json"):
-        self.feed_path = Path(feed_path)
+    def __init__(self, feed_path: str | None = None):
+        self.feed_path = Path(feed_path) if feed_path else config_path("threat_intel_feed.json")
         self._ensure_store()
 
     def _utc_now(self) -> str:
@@ -66,6 +68,7 @@ class ThreatIntelFeedManager:
         }
 
     def _ensure_store(self):
+        self.feed_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.feed_path.exists():
             self.feed_path.write_text(json.dumps(self._default_feed(), indent=2), encoding="utf-8")
 
@@ -201,4 +204,3 @@ class ThreatIntelFeedManager:
             "total": len(data["entries"]),
             "source_url": url,
         }
-

@@ -1,4 +1,3 @@
-import importlib
 import time
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
@@ -96,6 +95,8 @@ class RegexHeuristicBaselineAdapter(ToolAdapter):
 
 class OptionalImportAdapter(ToolAdapter):
     def __init__(self, name: str, import_name: str, predictor_fn: Callable[[str], bool]):
+        import importlib
+
         self.name = name
         self.import_name = import_name
         self.predictor_fn = predictor_fn
@@ -115,63 +116,6 @@ class OptionalImportAdapter(ToolAdapter):
                 tool=self.name,
                 predicted_label="threat" if is_threat else "clean",
                 latency_ms=latency,
-            )
-        except Exception as exc:
-            latency = (time.perf_counter() - start) * 1000
-            return ToolResult(tool=self.name, predicted_label="clean", latency_ms=latency, error=str(exc))
-
-
-class HuggingFacePromptInjectionAdapter(ToolAdapter):
-    def __init__(self, model_name: str = "ProtectAI/deberta-v3-base-prompt-injection-v2"):
-        self.model_name = model_name
-        self.name = f"HF Prompt Injection ({model_name})"
-        self.backend = "api"
-        self._available = importlib.util.find_spec("huggingface_hub") is not None
-        self._classifier = None
-        self._load_error = None
-        self._token = __import__("os").getenv("HF_TOKEN") or __import__("os").getenv("HUGGINGFACEHUB_API_TOKEN")
-
-    def available(self) -> bool:
-        return self._available and bool(self._token)
-
-    def _ensure_loaded(self):
-        if self._classifier is not None or self._load_error is not None:
-            return
-        try:
-            from huggingface_hub import InferenceClient
-
-            self._classifier = InferenceClient(
-                provider="hf-inference",
-                api_key=self._token,
-            )
-        except Exception as exc:
-            self._load_error = str(exc)
-
-    def predict(self, text: str) -> ToolResult:
-        if not self._available:
-            return ToolResult(tool=self.name, predicted_label="clean", latency_ms=0.0, error="not_installed")
-        self._ensure_loaded()
-        if self._classifier is None:
-            return ToolResult(
-                tool=self.name,
-                predicted_label="clean",
-                latency_ms=0.0,
-                error=self._load_error or "load_failed",
-            )
-
-        start = time.perf_counter()
-        try:
-            result = self._classifier.text_classification(text[:2000], model=self.model_name)
-            top = result[0] if result else {}
-            label = str(top.get("label", "")).strip().lower()
-            score = float(top.get("score", 0.0))
-            predicted = "threat" if label in {"1", "label_1", "injection", "injection-detected", "prompt_injection"} else "clean"
-            latency = (time.perf_counter() - start) * 1000
-            return ToolResult(
-                tool=self.name,
-                predicted_label=predicted,
-                latency_ms=latency,
-                meta={"label": label, "score": score, "backend": self.backend},
             )
         except Exception as exc:
             latency = (time.perf_counter() - start) * 1000
@@ -202,5 +146,4 @@ def build_optional_market_adapters() -> list[ToolAdapter]:
         OptionalImportAdapter("LLM Guard", "llm_guard", llm_guard_predict),
         OptionalImportAdapter("Rebuff", "rebuff", rebuff_predict),
         OptionalImportAdapter("Guardrails AI", "guardrails", guardrails_predict),
-        HuggingFacePromptInjectionAdapter(),
     ]

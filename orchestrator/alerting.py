@@ -1,9 +1,10 @@
 import json
-import os
 import smtplib
 import urllib.request
 from email.message import EmailMessage
 from typing import Dict, Optional
+
+from orchestrator.settings import AlertingSettings
 
 
 class AlertManager:
@@ -33,16 +34,17 @@ class AlertManager:
 
     @classmethod
     def from_env(cls):
+        settings = AlertingSettings.from_env()
         return cls(
-            webhook_url=os.getenv("SEMANTIC_FIREWALL_ALERT_WEBHOOK_URL", ""),
-            slack_webhook_url=os.getenv("SEMANTIC_FIREWALL_SLACK_WEBHOOK_URL", ""),
-            smtp_host=os.getenv("SEMANTIC_FIREWALL_SMTP_HOST", ""),
-            smtp_port=int(os.getenv("SEMANTIC_FIREWALL_SMTP_PORT", "587")),
-            smtp_user=os.getenv("SEMANTIC_FIREWALL_SMTP_USER", ""),
-            smtp_password=os.getenv("SEMANTIC_FIREWALL_SMTP_PASSWORD", ""),
-            email_from=os.getenv("SEMANTIC_FIREWALL_ALERT_FROM", ""),
-            email_to=os.getenv("SEMANTIC_FIREWALL_ALERT_TO", ""),
-            min_severity=os.getenv("SEMANTIC_FIREWALL_ALERT_MIN_SEVERITY", "HIGH"),
+            webhook_url=settings.webhook_url,
+            slack_webhook_url=settings.slack_webhook_url,
+            smtp_host=settings.smtp_host,
+            smtp_port=settings.smtp_port,
+            smtp_user=settings.smtp_user,
+            smtp_password=settings.smtp_password,
+            email_from=settings.email_from,
+            email_to=settings.email_to,
+            min_severity=settings.min_severity,
         )
 
     def _severity_rank(self, severity: str) -> int:
@@ -87,4 +89,3 @@ class AlertManager:
             if self.smtp_user:
                 smtp.login(self.smtp_user, self.smtp_password)
             smtp.send_message(message)
-

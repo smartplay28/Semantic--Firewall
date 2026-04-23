@@ -38,7 +38,7 @@ class AnalyzeResponse(BaseModel):
     risk_score: float = 0.0
     risk_level: str = "NONE"
     explanation: Optional[dict] = None
-    detected_patterns: List[dict] = []
+    detected_patterns: List[dict] = Field(default_factory=list)
 
 
 class InteractionAnalyzeResponse(BaseModel):

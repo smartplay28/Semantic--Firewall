@@ -29,7 +29,7 @@ class DetectionResult:
 
 
 class CustomRulesDetectorAgent:
-    def __init__(self, rules_path: str = "custom_rules.json"):
+    def __init__(self, rules_path: str | None = None):
         self.name = "Custom Rules Detector"
         self.rules_manager = CustomRulesManager(rules_path=rules_path)
 
@@ -227,7 +227,7 @@ class CustomRulesDetectorAgent:
 
     def validate_rule(self, rule: dict) -> dict:
         """
-        Validate a rule dict before saving to custom_rules.json.
+        Validate a rule dict before saving to the custom rules store.
         Returns {"valid": True/False, "error": "reason if invalid"}
         """
         required_fields = ["id", "name", "pattern", "severity", "description"]

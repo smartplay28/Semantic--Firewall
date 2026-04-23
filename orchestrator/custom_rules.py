@@ -4,13 +4,16 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from uuid import uuid4
 
+from orchestrator.paths import config_path
+
 
 class CustomRulesManager:
-    def __init__(self, rules_path: str = "custom_rules.json"):
-        self.rules_path = Path(rules_path)
+    def __init__(self, rules_path: str | None = None):
+        self.rules_path = Path(rules_path) if rules_path else config_path("custom_rules.json")
         self._ensure_store()
 
     def _ensure_store(self):
+        self.rules_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.rules_path.exists():
             self.rules_path.write_text("[]", encoding="utf-8")
 

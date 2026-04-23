@@ -39,7 +39,7 @@ def main():
             py,
             "tools/suggest_threshold_tuning.py",
             "--db-path",
-            "audit.db",
+            "var/audit.db",
             "--output",
             "results/threshold_tuning_recommendations.json",
         ]

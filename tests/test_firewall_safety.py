@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import base64
-import tempfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -18,10 +17,11 @@ from orchestrator.orchestrator import (
     SemanticFirewallOrchestrator,
 )
 
-TMP_DIR = Path(tempfile.gettempdir())
+TMP_DIR = Path(__file__).resolve().parent / ".tmp"
 
 
 def _tmp_file(stem: str, ext: str) -> Path:
+    TMP_DIR.mkdir(parents=True, exist_ok=True)
     return TMP_DIR / f"{stem}_{uuid4().hex}{ext}"
 
 

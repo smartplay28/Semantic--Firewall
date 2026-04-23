@@ -102,7 +102,7 @@ class SecretsDetectorAgent:
 
             # ── Cloud Providers ───────────────────────────────────────────────
             "aws_access_key": (
-                r'\bAKIA[0-9A-Z]{16}\b',
+                r'\bAKIA(?!IOSFODNN7EXAMPLE)[0-9A-Z]{16}\b',
                 "AWS Access Key ID",
                 4
             ),

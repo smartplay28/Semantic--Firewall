@@ -5,14 +5,19 @@ import re
 from datetime import datetime
 from typing import List, Optional
 
+from orchestrator.paths import var_path
+
 
 class AuditLogger:
-    def __init__(self, db_path: str = "audit.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: str | None = None):
+        self.db_path = db_path or str(var_path("audit.db"))
         self._init_db()
 
     def _init_db(self):
         """Create tables if they don't exist."""
+        from pathlib import Path
+
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS audit_log (

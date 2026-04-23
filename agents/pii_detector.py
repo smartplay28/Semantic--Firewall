@@ -99,7 +99,7 @@ class PIIDetectorAgent:
 
             # ── Contact ───────────────────────────────────────────────────────
             "email": (
-                r'\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b',
+                r'\b(?!(?:test|example|dummy)@(?:example|test|dummy)\.com)[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b',
                 "Email address"
             ),
             "phone_india": (

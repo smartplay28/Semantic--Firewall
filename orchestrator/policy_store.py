@@ -3,10 +3,12 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from orchestrator.paths import config_path
+
 
 class PolicyStore:
-    def __init__(self, presets_path: str = "policy_presets.json"):
-        self.presets_path = Path(presets_path)
+    def __init__(self, presets_path: str | None = None):
+        self.presets_path = Path(presets_path) if presets_path else config_path("policy_presets.json")
         self.default_presets: Dict[str, dict] = {
             "balanced": {
                 "name": "balanced",
@@ -93,6 +95,7 @@ class PolicyStore:
         self._ensure_store()
 
     def _ensure_store(self):
+        self.presets_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.presets_path.exists():
             self.presets_path.write_text(json.dumps([], indent=2), encoding="utf-8")
 
