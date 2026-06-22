@@ -1,57 +1,57 @@
 {
   "Raw LLM Gate Only": {
     "metrics": {
-      "accuracy": 0.702,
-      "precision": 0.702,
-      "recall": 0.702,
+      "accuracy": 0.553,
+      "precision": 0.7823,
+      "recall": 0.6366,
       "f1": 0.702
     },
-    "avg_latency_ms": 7407.82
+    "avg_latency_ms": 731.64
   },
   "Regex Only": {
     "metrics": {
-      "accuracy": 0.694,
-      "precision": 0.694,
-      "recall": 0.694,
+      "accuracy": 0.541,
+      "precision": 0.7734,
+      "recall": 0.6294,
       "f1": 0.694
     },
-    "avg_latency_ms": 35283.34
+    "avg_latency_ms": 5.21
   },
   "Semantic Cache Only": {
     "metrics": {
-      "accuracy": 0.701,
-      "precision": 0.701,
-      "recall": 0.701,
+      "accuracy": 0.5965,
+      "precision": 0.9053,
+      "recall": 0.5719,
       "f1": 0.701
     },
-    "avg_latency_ms": 41250.34
+    "avg_latency_ms": 602.83
   },
   "Parallel Detectors Only": {
     "metrics": {
-      "accuracy": 0.913,
-      "precision": 0.913,
-      "recall": 0.913,
+      "accuracy": 0.8665,
+      "precision": 0.9901,
+      "recall": 0.847,
       "f1": 0.913
     },
-    "avg_latency_ms": 65863.93
+    "avg_latency_ms": 83.45
   },
   "Regex + Cache": {
     "metrics": {
-      "accuracy": 0.917,
-      "precision": 0.917,
-      "recall": 0.917,
+      "accuracy": 0.855,
+      "precision": 0.8707,
+      "recall": 0.9686,
       "f1": 0.917
     },
-    "avg_latency_ms": 28414.28
+    "avg_latency_ms": 602.83
   },
   "Regex + Parallel Detectors": {
     "metrics": {
-      "accuracy": 0.944,
-      "precision": 0.944,
-      "recall": 0.944,
+      "accuracy": 0.909,
+      "precision": 0.9612,
+      "recall": 0.9274,
       "f1": 0.944
     },
-    "avg_latency_ms": 26141.73
+    "avg_latency_ms": 83.45
   },
   "All Fast Layers (No LLM)": {
     "metrics": {
