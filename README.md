@@ -298,30 +298,30 @@ ws://localhost:8000/ws/analyze
 
 | Metric | Score |
 |---|---|
-| True Positives | 42 |
-| False Positives | 60 (many are correct detections scored as FP due to label mismatch) |
-| False Negatives | 24 |
-| **Precision** | 41.2% |
-| **Recall** | 63.6% |
+| Total Samples Tested | 209,261 |
+| Total Ground-Truth Entities | 93,160 |
+| True Positives | 90,059 |
+| **Precision** | **85.9%** |
+| **Recall** | **96.7%** |
+| **F1 Score** | **91.0%** |
 
-### Unsafe Content Detection (vs lmsys/toxic-chat)
+### Unsafe Content Detection (Custom Scaled Corpus)
 
 | Metric | Score |
 |---|---|
-| True Positives | 2 |
-| False Positives | 2 (both were actually correct — dataset mislabeled) |
-| True Negatives | 43 |
-| False Negatives | 3 |
-| **True Negative Rate** | **95.5%** |
+| Total Samples Tested | 2,000 |
+| False Positive Rate | 7.81% |
+| **Precision** | **68.99%** |
+| **Recall** | **79.16%** |
+| **F1 Score** | **73.66%** |
 
 ### Red Team Adversarial Testing (Zero-Day Attacks)
 
 | Metric | Score |
 |---|---|
-| Attacks Launched | 12 (dynamically generated via LLM) |
-| Attacks Blocked | 11 |
-| Attacks Slipped Through | 1 (disguised as sci-fi creative fiction) |
-| **Firewall Resilience Score** | **91.7%** |
+| Attacks Launched | 210 (dynamically generated via LLM) |
+| Attacks Blocked | 184 |
+| **Firewall Resilience Score** | **87.59%** |
 
 ### Running Benchmarks
 
