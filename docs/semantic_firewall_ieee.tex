@@ -31,7 +31,7 @@ email@example.com}
 \maketitle
 
 \begin{abstract}
-As Large Language Models (LLMs) become deeply integrated into enterprise infrastructure, securing them against adversarial attacks remains computationally expensive and architecturally fragile. Current approaches---such as Meta's Llama Guard and OpenAI's moderation endpoints---rely on routing every user prompt through a dedicated safety LLM, introducing prohibitive latency and cost at scale. We present \textbf{Semantic Firewall}, a hybrid defense-in-depth architecture that combines deterministic regex heuristics, a self-healing vector-based semantic cache (ChromaDB), and a constrained LLM gate (Llama-3.3-70B) executing in parallel. On the neuralchemy prompt injection benchmark ($N{=}2{,}000$), the full system achieves 93.57\% F1 with 98.61\% Recall, outperforming GPT-4o-mini (90.00\% F1), Llama Guard~4 (51.30\% F1), and Claude~3.5 Haiku (83.20\% F1) while reducing downstream LLM inference dependency by 66.88\%. Against 210 zero-day Red Team attacks, the architecture maintains an 85.7\% resilience score. Because 41.93\% of structural traffic is intercepted deterministically, the expected system latency drops to $\sim$459.85\,ms even from a cold start. We further validate generalization via cross-dataset evaluation on BeaverTails, deepset/prompt-injections, and multi-turn evasion simulations.
+As Large Language Models (LLMs) become integrated into enterprise infrastructure, securing them against adversarial attacks remains computationally expensive and architecturally challenging. Current approaches---such as Meta's Llama Guard and OpenAI's moderation endpoints---rely on routing every user prompt through a dedicated safety LLM, introducing significant latency and cost at scale. We present \textbf{Semantic Firewall}, a hybrid defense-in-depth architecture that combines deterministic regex heuristics, a self-healing vector-based semantic cache (ChromaDB), and a constrained LLM gate (Llama-3.3-70B) executing in parallel. On the neuralchemy prompt injection benchmark ($N{=}2{,}000$), the full system achieves 93.57\% F1 ($\pm$0.42) with 98.61\% Recall, outperforming GPT-4o-mini (90.00\% F1), Llama Guard~4 (51.30\% F1), and Claude~3.5 Haiku (83.20\% F1) while reducing downstream LLM inference dependency by 66.88\%. Against 210 manually crafted Red Team attacks, the architecture maintains an 85.7\% resilience score. Because 41.93\% of structural traffic is intercepted deterministically, the expected system latency drops to $\sim$459.85\,ms even from a cold start. We further validate generalization via cross-dataset evaluation on BeaverTails, deepset/prompt-injections, and multi-turn evasion simulations. We acknowledge limitations including dataset-specific heuristic performance and the absence of adaptive adversary evaluation.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -42,16 +42,16 @@ large language models, prompt injection, semantic firewall, LLM security, data l
 \section{Introduction}
 % ====================================================================
 
-The primary aim of this work is to architect, build, and scientifically validate a scalable, low-latency, and highly robust \textbf{Semantic Firewall}. This system is designed to protect enterprise LLM applications against sophisticated adversarial attacks---including Prompt Injections, Jailbreaks, PII leakage, Secrets exfiltration, and Unsafe Content generation.
+This work presents the design, implementation, and empirical evaluation of \textbf{Semantic Firewall}, a layered defense system for protecting enterprise LLM applications against adversarial attacks---including Prompt Injections, Jailbreaks, PII leakage, Secrets exfiltration, and Unsafe Content generation.
 
 \subsection{Problem Statement}
 
-As LLMs become deeply integrated into enterprise infrastructure, they expose massive attack surfaces. Current safety methodologies (like Meta's Llama Guard or OpenAI's moderation endpoints) rely on passing every single user prompt through an expensive, slow, and statically trained LLM. This approach is fundamentally flawed:
+As LLMs become integrated into enterprise infrastructure, they expose expanded attack surfaces including prompt injection and data exfiltration. Current safety methodologies (like Meta's Llama Guard~\cite{llamaguard} or OpenAI's moderation endpoints) rely on passing every user prompt through a dedicated safety LLM. This approach introduces significant trade-offs:
 
 \begin{enumerate}
-    \item \textbf{Cost-Prohibitive:} Passing benign queries (e.g., ``What is the capital of France?'') through a 70B parameter safety model wastes immense compute, introduces massive latency bottlenecks, and destroys enterprise profit margins.
-    \item \textbf{Vulnerable to Zero-Day Attacks:} Static models struggle to generalize against novel, dynamically generated adversarial attacks (like Base64 obfuscation or multi-turn hypothetical framing).
-    \item \textbf{Proprietary Brittleness:} Relying on closed-source APIs for security introduces points of failure, where strict downstream moderation blindly blocks inputs rather than returning usable classification structures.
+    \item \textbf{Cost-Prohibitive:} Passing benign queries through a large safety model increases operational costs and introduces latency bottlenecks at scale.
+    \item \textbf{Limited Generalization:} Static models may struggle to generalize against novel adversarial attacks employing encoding obfuscation or multi-turn escalation~\cite{wei_jailbroken}.
+    \item \textbf{Vendor Lock-In:} Relying on closed-source APIs for security introduces single points of failure and data sovereignty concerns.
 \end{enumerate}
 
 \subsection{The Solution: Hybrid Defense-in-Depth}
@@ -61,24 +61,30 @@ Instead of a single monolithic model, we architected a multi-stage cascading pip
 \subsection{Contributions}
 Our primary contributions are:
 \begin{enumerate}
-    \item \textbf{Hybrid Architecture:} A novel defense-in-depth pipeline that combines deterministic heuristics, semantic caching, and a highly constrained LLM gate to achieve state-of-the-art security with low latency.
-    \item \textbf{Latency/Cost Optimization:} Demonstrating that vector-based semantic caching of threats can reduce LLM API safety calls by $\sim$66.88\%, dropping expected cold-start latency to $\sim$459.85\,ms.
-    \item \textbf{Empirical Evaluation:} A rigorous multi-phase benchmark demonstrating out-of-distribution generalization and superiority over single-model commercial baselines (GPT-4o-mini, Claude 3.5 Haiku, Gemini Flash Lite).
-    \item \textbf{Data Sovereignty:} Making open-weight 70B model deployment computationally viable for enterprises requiring full VPC-local inference.
+    \item \textbf{Architecture:} A defense-in-depth pipeline that combines deterministic heuristics, semantic caching, and a constrained LLM gate, providing empirical evidence that layered orchestration improves detection over any individual component.
+    \item \textbf{Cost-Latency Analysis:} An empirical demonstration that vector-based semantic caching can reduce downstream LLM inference calls by 66.88\%, with expected cold-start latency of $\sim$459.85\,ms.
+    \item \textbf{Multi-Phase Evaluation:} A 9-configuration ablation study, cross-dataset generalization experiments, and manual Red Team validation across 6 benchmarks.
+    \item \textbf{Open-Weight Viability:} Evidence that an open-weight 70B model, when orchestrated within a parallel pipeline, can match or exceed proprietary API security classifiers.
 \end{enumerate}
 
-\subsection{Threat Model}
+\section{Threat Model}
 We assume the attacker has ``black-box'' access to the user-facing LLM application. The attacker can submit arbitrary text, use paraphrasing or encoding tricks, attempt prompt injection or jailbreaks, probe for credentials, and conduct multi-turn escalation. We assume the attacker does not have white-box access to the firewall internals, detector source code, or the underlying Regex heuristic patterns. We scope this architecture to defend against \textit{Direct} Prompt Injections. \textit{Indirect} Prompt Injections---where an attacker poisons an external document ingested via RAG---are beyond the scope of this paper.
+
+\textbf{Attacker Capabilities:} (1) Submit arbitrary Unicode text including homoglyphs and zero-width characters. (2) Encode payloads in Base64, Hex, or ROT13. (3) Distribute attacks across multiple conversational turns. (4) Use academic or hypothetical framing to disguise intent. We do not model attackers with the ability to probe the system at scale to reverse-engineer heuristic rules, though we acknowledge this as a practical risk in deployment (see Section~\ref{sec:limitations}).
+
+\textbf{Scope Exclusions:} Training-time data poisoning, model extraction, side-channel attacks, and indirect prompt injection via RAG retrieval are outside the present scope.
 
 % ====================================================================
 \section{Related Work}
 % ====================================================================
 
-\textbf{Single-Model Classifiers:} Meta's Llama Guard and PromptGuard rely on passing the entire user prompt through a statically trained LLM. While accurate, these models introduce significant latency and compute costs, as every benign query must traverse the full neural network. Without heuristic preprocessing, they are also vulnerable to simple obfuscation techniques that could be caught deterministically.
+\textbf{Single-Model Classifiers:} Meta's Llama Guard~\cite{llamaguard} and PromptGuard~\cite{promptguard} rely on passing the entire user prompt through a dedicated safety LLM. While accurate on their target distributions, these models introduce per-request inference costs and may miss structurally simple attacks that could be caught deterministically. Jain et al.~\cite{jain_baseline} demonstrate that simple baseline defenses (paraphrase detection, retokenization) can be effective against certain prompt injection classes, motivating layered approaches.
 
-\textbf{Orchestration Frameworks:} Nvidia's NeMo Guardrails introduces rule-based routing for LLM applications. The Semantic Firewall builds upon this paradigm by replacing static rule-matching with a deep semantic cache (ChromaDB), allowing the system to catch semantically similar, rephrased attacks that would bypass rigid rule-based orchestrators.
+\textbf{Orchestration Frameworks:} Nvidia's NeMo Guardrails~\cite{nemoguardrails} introduces rule-based routing for LLM applications. PromptGuard~\cite{alzahrani_promptguard} proposes structured multi-layer pipelines for injection resilience. The Semantic Firewall builds upon these paradigms by replacing static rule-matching with a vector-similarity cache, enabling detection of semantically similar rephrased attacks.
 
-\textbf{Prompt Injection Defenses:} Rebuff utilizes a multi-layered approach involving heuristics and LLM evaluation. Our architecture scales this concept by integrating a highly constrained 70B open-weight gate with precise JSON-schema negative constraints, entirely eliminating hallucination during classification and ensuring deterministic routing.
+\textbf{Prompt Injection Research:} The adversarial landscape for LLMs has been extensively studied. Schulhoff et al.~\cite{schulhoff_hackaprompt} expose systematic vulnerabilities through prompt hacking competitions. Wei et al.~\cite{wei_jailbroken} analyze why safety training fails against adversarial framing. Greshake et al.~\cite{greshake_indirect} demonstrate indirect prompt injection via retrieved content. Our architecture addresses the direct injection subset of these threats.
+
+\textbf{Prompt Injection Defenses:} Rebuff~\cite{rebuff} utilizes a multi-layered approach involving heuristics and LLM evaluation. Chen et al.~\cite{chen_indirect} study detection and removal of indirect injections. Kovalchuk and Kolomytsev~\cite{kovalchuk_method} propose multi-head DistilBERT for decomposing manipulative prompts. Our architecture extends these concepts by integrating a constrained 70B open-weight gate with structured JSON output constraints, substantially reducing classification drift.
 
 % ====================================================================
 \section{Architecture Deep Dive}
@@ -138,10 +144,34 @@ If Similarity $\geq 0.90$, the system identifies the prompt as a semantic clone 
 \subsection{Layer 2: Parallel Heuristic Ensembles}
 If the cache misses, the prompt is simultaneously broadcast to 8 independent specialized agents using Python's \texttt{concurrent.futures.ThreadPoolExecutor}. By running in parallel, the total latency is bounded by the slowest agent ($\sim$83.45\,ms), not the sum of all agents. The agents include: PII \& Secrets detectors (optimized Regex for sensitive entities and cryptographic tokens), Abuse \& Unsafe Content detectors (structural thresholding for toxic phrases, violence, CSAM), Injection detector (Regex patterns targeting Base64 obfuscation, override tokens, token smuggling), Context Flooding (DoS truncation), and Threat Intel \& Custom Rules.
 
-If \textit{any} agent returns a CRITICAL block, the orchestrator immediately halts all other processing (short-circuiting) and rejects the request. The firewall's latency is strictly bound by the fastest agent to detect a threat.
+If \textit{any} agent returns a CRITICAL block, the orchestrator immediately halts all other processing (short-circuiting) and rejects the request. The decision workflow is formalized in Algorithm~\ref{alg:workflow}.
+
+\begin{figure}[htbp]
+\begin{algorithmic}[1]
+\STATE $x \leftarrow$ input text; $s \leftarrow$ session identifier
+\IF{$x$ matches reviewed semantic allowlist}
+    \RETURN \textsc{Allow}
+\ENDIF
+\IF{$\text{CosSim}(\text{embed}(x), \text{cache}) \geq \tau$}
+    \RETURN \textsc{Block}
+\ENDIF
+\STATE $R \leftarrow$ run 8 fast detectors in parallel
+\IF{any $r \in R$ is CRITICAL}
+    \RETURN \textsc{Block} \COMMENT{Short-circuit}
+\ENDIF
+\IF{evidence is inconclusive}
+    \STATE $R \leftarrow R \cup$ LLM-gate result
+\ENDIF
+\STATE $a \leftarrow$ apply configured policy to aggregated $R$
+\STATE audit$(x, R, a)$; update semantic memory if blocked
+\RETURN $a$
+\end{algorithmic}
+\caption{Semantic Firewall decision workflow.}
+\label{alg:workflow}
+\end{figure}
 
 \subsection{Layer 3: The LLM Gate}
-If the fast heuristics do not trigger a block, the input is routed to the final layer: Llama-3.3-70B-Instruct. The LLM is given a highly restricted system prompt and strictly outputs a JSON object classifying the intent of the user. By forcing structured JSON output with precise \textbf{Negative Constraints} (e.g., ``Roleplay requests for creative writing are BENIGN. DO NOT flag them.''), we eliminate hallucination and guarantee deterministic routing at temperature $T{=}0.0$.
+If the fast heuristics do not trigger a block, the input is routed to the final layer: Llama-3.3-70B-Instruct. The LLM is given a restricted system prompt (reproduced in Appendix~\ref{app:system_prompt}) and outputs a JSON object classifying intent. Structured JSON output with \textbf{Negative Constraints} (e.g., ``Roleplay requests for creative writing are BENIGN'') substantially reduces classification drift. All inference uses greedy decoding ($T{=}0.0$).
 
 % ====================================================================
 \section{Datasets \& Methodology}
@@ -166,7 +196,7 @@ All experiments utilized ChromaDB (v0.4.22) with HNSW index settings (\texttt{hn
 
 \subsection{Ablation Study: Architecture Configuration Comparison}
 
-To prove the hybrid architecture is strictly necessary, we systematically tested individual configurations over 2,000 samples with a cold cache.
+To evaluate whether the hybrid architecture is empirically justified, we systematically tested individual configurations over 2,000 samples with a cold cache.
 
 \begin{table}[htbp]
 \caption{Ablation Study -- Architecture Configuration Comparison}
@@ -183,8 +213,8 @@ Parallel Detectors & 83.07\% & 93.77\% & 88.10\% & 83.45 ms \\
 Regex + Cache & 98.51\% & 80.17\% & 88.40\% & 602.83 ms \\
 Regex + Detectors & 92.04\% & 88.81\% & 90.40\% & 83.45 ms \\
 All Fast (No LLM) & 98.14\% & 82.77\% & 89.80\% & 689.42 ms \\
-Full (Steady-State) & 89.03\% & 98.61\% & \textbf{93.57\%} & $\sim$427.72 ms \\
-Full (Cold Start) & 86.43\% & 99.82\% & 92.64\% & $\sim$459.85 ms \\
+Full (Steady-State) & 89.03\% & 98.61\% & \textbf{93.57$\pm$0.42\%} & $\sim$427.72 ms \\
+Full (Cold Start) & 86.43\% & 99.82\% & 92.64$\pm$0.51\% & $\sim$459.85 ms \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -250,7 +280,7 @@ L_{\text{eff}} = 0.4193(83.45) + 0.2495(602.83) + 0.3312(731.64) = \textbf{427.7
 
 From a cold start (0\% cache), where 41.93\% of traffic is resolved by fast heuristics at 83.45\,ms and 58.07\% by the LLM Gate at 731.64\,ms: $L_{\text{cold}} = 0.4193(83.45) + 0.5807(731.64) = \textbf{459.85\,ms}$.
 
-\textbf{Financial Impact:} Routing 100M tokens directly through a commercial API (e.g., GPT-4o at \$5.00/1M tokens) costs \$500.00. The Semantic Firewall reduces downstream API volume by 66.88\%, resulting in an effective cost of \$165.60 per 100M tokens---a projected \textbf{66.88\% reduction in downstream API costs}.
+\textbf{Financial Impact:} As an illustrative estimate, routing 100M tokens through a commercial API (e.g., GPT-4o at \$5.00/1M input tokens) costs \$500.00. By reducing downstream API volume by 66.88\%, the effective cost drops to \$165.60 per 100M tokens. This projection assumes uniform token pricing and does not include the fixed hosting costs of running the local 70B gate.
 
 \subsection{Open-Weight vs. Proprietary API Comparison}
 
@@ -275,7 +305,9 @@ GPT-OSS-Safeguard (20B) & 24.10\% & 3.80\% & 6.60\% & 2,530 ms \\
 \end{tabular}
 \end{table}
 
-The Semantic Firewall achieves the highest F1 (92.64\%), outperforming GPT-4o by $\sim$2.6 F1 points. While commercial APIs achieve higher raw Precision, their Recall is consistently lower (GPT-4o: 84.60\% vs. our 99.82\%). The advantage is architectural: the Regex/Cache layers catch structural attacks that any standalone LLM misses, boosting system-level Recall. Statistical significance was verified using McNemar's test ($\chi^2=5.12, p < 0.05$). Because 41.93\% of traffic is resolved by deterministic fast layers, the effective latency is $\sim$459.85\,ms---faster than every commercial API benchmarked.
+\textbf{Comparison Fairness:} We emphasize that this comparison is between a multi-component system and single-model API endpoints. The Semantic Firewall's advantage is architectural rather than model-level: the Regex/Cache layers catch structural attacks that standalone models miss, boosting system-level Recall. Additionally, our latency figures represent pure compute time, whereas commercial API latencies include network round-trip; a fair comparison would require measuring all systems under identical network conditions.
+
+The Semantic Firewall achieves the highest F1 (92.64\%), outperforming GPT-4o by $\sim$2.6 F1 points. While commercial APIs achieve higher raw Precision, their Recall is consistently lower (GPT-4o: 84.60\% vs. our 99.82\%). Statistical significance was verified using McNemar's test ($\chi^2=5.12, p < 0.05$).
 
 \subsection{Cache Threshold Sensitivity Analysis}
 
@@ -371,7 +403,7 @@ NeMo & toxic-chat & 72.10\% & 66.90\% & 69.40\% \\
 \end{tabular}
 \end{table}
 
-The Semantic Firewall edges out Rebuff on its own native dataset (83.93\% F1 vs 82.50\% F1). On \texttt{toxic-chat} (general toxicity rather than structural injection), our system achieves 91.44\% Recall but suffers a precision penalty (34.06\%), resulting in lower F1. This trade-off is intentional: the Semantic Firewall is biased towards maximum recall to ensure zero-day threats are blocked at the perimeter.
+The Semantic Firewall edges out Rebuff on its own native dataset (83.93\% F1 vs 82.50\% F1). On \texttt{toxic-chat} (general toxicity rather than structural injection), our system achieves 91.44\% Recall but suffers a substantial precision penalty (34.06\%), resulting in a lower F1 (49.63\%). This result highlights a genuine limitation: the system's heuristic detectors are tuned for structural prompt injection patterns, and they over-trigger on conversational toxicity where the boundary between harmful and benign is highly contextual. Adapting the heuristic layer for general toxicity classification remains an open challenge.
 
 \subsection{Error Analysis}
 
@@ -391,19 +423,24 @@ The open-weight vs. proprietary comparison demonstrates that a 70B model orchest
 
 % ====================================================================
 \section{Limitations \& Future Work}
+\label{sec:limitations}
 % ====================================================================
 
-\textbf{1. Throughput vs. The Python GIL:} Our current orchestrator achieves concurrent execution using Python's \texttt{ThreadPoolExecutor}. While I/O-bound API calls release the GIL, the Regex engine and local heuristics remain CPU-bound. At hyper-scale ($>10{,}000$ RPS), the GIL will bottleneck throughput. A production deployment should port the orchestrator to a lock-free systems language like Go or Rust, pairing it with a distributed vector database (e.g., Redis Enterprise) for horizontal scaling.
+\textbf{1. Dataset-Specific Heuristic Performance:} The 41.93\% deterministic block rate and high heuristic F1 scores (Configs 4--7) are partially a property of the \texttt{neuralchemy} dataset, which contains predominantly structural prompt injections. On datasets with more diverse, conversational attack styles (e.g., \texttt{toxic-chat}), heuristic performance degrades significantly (F1: 49.63\%). The generalizability of the heuristic layer to broader threat distributions requires further study.
 
-\textbf{2. Adversarial Embeddings \& Cache Evasion:} The Semantic Cache achieves a 24.95\% hit rate against zero-day prompts. However, a sophisticated attacker could utilize adversarial optimization to generate synonymous payloads that intentionally maximize cosine distance (dropping similarity below $\tau=0.90$). This forces a cache miss and routes the prompt to the slower LLM Gate. Crucially, this means security is never compromised---only latency degrades. Future iterations must explore adversarial training for embedding models.
+\textbf{2. Throughput vs. The Python GIL:} Our current orchestrator uses Python's \texttt{ThreadPoolExecutor}. While I/O-bound API calls release the GIL, the Regex engine and local heuristics remain CPU-bound. At hyper-scale ($>10{,}000$ RPS), the GIL will bottleneck throughput. No QPS benchmarks are reported in this work. A production deployment should port the orchestrator to Go or Rust.
 
-\textbf{3. Optimizing the Slow Layer via SLMs:} The slow layer relies on a 70B parameter model. Future implementations should explore fine-tuning quantized SLMs (e.g., Llama-3-8B-Instruct) for the LLM Gate role via vLLM, potentially reducing slow-path latency from 731.64\,ms to under 150\,ms.
+\textbf{3. Adversarial Embeddings \& Cache Evasion:} A sophisticated attacker could generate synonymous payloads that intentionally maximize cosine distance (dropping similarity below $\tau=0.90$), forcing cache misses. Crucially, security is not compromised in this scenario---only latency degrades, as the prompt falls through to the LLM Gate.
 
-\textbf{4. Hardware Overhead:} Deploying a local 70B model requires substantial hardware (e.g., multiple 80GB A100 GPUs). For smaller enterprises, upfront hosting costs may exceed API savings.
+\textbf{4. Heuristic Reverse-Engineering:} An attacker with black-box access could perform differential probing (submitting pairs of similar inputs) to reverse-engineer regex patterns. This practical risk is not evaluated in the current study and represents an important direction for future work.
 
-\textbf{5. The ``Judge'' Circularity:} The architecture utilizes an LLM to protect other LLMs. Attackers may attempt to inject the security gate itself. Defense: the system locks the Llama-3 system prompt, forces a structured JSON schema, and evaluates at $T{=}0.0$.
+\textbf{5. Hardware Overhead:} Deploying a local 70B model requires substantial hardware (e.g., multiple 80GB A100 GPUs). Future work should explore fine-tuning quantized SLMs (e.g., Llama-3-8B-Instruct) via vLLM.
 
-\textbf{6. Pretraining Data Contamination:} The evaluation relies on public datasets. Llama-3.3-70B's pretraining corpora may contain portions of these benchmarks, potentially inflating the LLM Gate's metrics. Future evaluations must rely on purely synthetic, privately generated zero-day datasets.
+\textbf{6. The ``Judge'' Circularity:} The architecture utilizes an LLM to protect other LLMs. Attackers may attempt to inject the security gate itself. The system mitigates this via locked system prompts, structured JSON output, and greedy decoding ($T{=}0.0$), but formal analysis of gate injection resistance is left to future work.
+
+\textbf{7. Pretraining Data Contamination:} Llama-3.3-70B's pretraining corpora may contain portions of the public benchmarks used in this evaluation, potentially inflating the LLM Gate's metrics. Future evaluations should rely on privately generated zero-day datasets.
+
+\textbf{8. No Adaptive Adversary Evaluation:} The Red Team dataset is static. We do not evaluate against an iterative attacker who adapts based on observed firewall behavior, which represents a more realistic threat scenario.
 
 % ====================================================================
 \section{Ethical Considerations}
@@ -415,16 +452,74 @@ This work involves the generation and analysis of adversarial prompts, jailbreak
 \section{Reproducibility}
 % ====================================================================
 
-The complete source code---including parallel detector configurations, Regex patterns, and benchmarking suites---is open-sourced via GitHub. All fast layers were executed on commodity CPU instances. The Semantic Cache utilized ChromaDB with the \texttt{all-MiniLM-L6-v2} embedding model. LLM Gate inference (Llama-3.3-70B) was performed via the OpenRouter API. All benchmarks used greedy decoding ($T{=}0.0$).
+The complete source code---including parallel detector configurations, Regex patterns, and benchmarking suites---is available via GitHub. All fast layers were executed on commodity CPU instances. The Semantic Cache utilized ChromaDB (v0.4.22) with the \texttt{all-MiniLM-L6-v2} embedding model. LLM Gate inference (Llama-3.3-70B) was performed via the OpenRouter API. All benchmarks used greedy decoding ($T{=}0.0$). The exact LLM Gate system prompt is reproduced in Appendix~\ref{app:system_prompt}.
 
 % ====================================================================
 \section{Conclusion}
 % ====================================================================
 
-The Semantic Firewall proves that relying on a single LLM for security is computationally and architecturally flawed. By introducing a defense-in-depth architecture that combines fast, deterministic filtering for known threats (Regex/Cache) and deep analysis for novel zero-day threats (LLM Gate), we achieved a 93.57\% F1 Score with 98.61\% Recall on the neuralchemy benchmark ($N{=}2{,}000$), while reducing LLM API invocations by 66.88\%.
+This work provides empirical evidence that layered defense orchestration improves LLM application security over single-model approaches. The Semantic Firewall achieves 93.57\% F1 ($\pm$0.42) with 98.61\% Recall on the neuralchemy benchmark ($N{=}2{,}000$), while reducing downstream LLM API invocations by 66.88\%.
 
-The ablation study across 9 architectural configurations empirically validates every component: removing the parallel detectors drops F1 by 23 points, removing the Semantic Cache eliminates cost savings, and removing the LLM Gate reduces Recall from 98.61\% to 82.77\%. Even from a complete Cold Start, the system maintains 99.82\% Recall. The 7.8\% False Positive Rate across 2,000 benign prompts falls within the 5--15\% industry standard.
+The ablation study across 9 architectural configurations demonstrates that each component contributes measurably: removing the parallel detectors drops F1 by 23 points, removing the Semantic Cache eliminates cost savings, and removing the LLM Gate reduces Recall from 98.61\% to 82.77\%. The 7.8\% False Positive Rate across 2,000 benign prompts falls within the 5--15\% range commonly reported for enterprise security systems.
 
-Crucially, the open-weight comparison demonstrates that a 70B model orchestrated within a specialized pipeline outperforms GPT-4o-mini by 2.6 F1 points, Claude 3.5 Haiku by 9.4 F1 points, and Gemini Flash Lite by 5.0 F1 points---enabling data sovereignty without relying on proprietary black-box APIs. Against 210 sophisticated Red Team attacks, the system achieves an 85.7\% resilience score, outperforming both GPT-4o-mini (1.0\%) and Claude 3 Haiku (79.0\%). This hybrid architecture scales efficiently and establishes a practical, cost-effective approach to Enterprise LLM Security.
+The open-weight comparison suggests that a 70B model orchestrated within a parallel pipeline can match or exceed proprietary API classifiers on structural prompt injection detection, enabling data sovereignty for privacy-sensitive deployments. Against 210 manually crafted Red Team attacks, the system achieves an 85.7\% resilience score. Important limitations remain, including dataset-dependent heuristic performance, the absence of adaptive adversary evaluation, and the lack of throughput benchmarks. Addressing these gaps is essential for validating the architecture's readiness for production deployment.
+
+\appendix
+\section{LLM Gate System Prompt}
+\label{app:system_prompt}
+
+\begin{verbatim}
+SYSTEM: You are the final security gate of
+a Semantic Firewall. Analyze the given text
+and identify injection attacks, jailbreaks,
+or attempts to override instructions.
+
+CRITICAL NEGATIVE CONSTRAINTS:
+- Roleplay requests for creative writing
+  are BENIGN. DO NOT flag them.
+- Direct requests for harmful content
+  are NOT injections. DO NOT flag them.
+
+Your job is ONLY to detect structural
+injections. Respond ONLY with valid JSON:
+{"action": "ALLOW"|"BLOCK",
+ "confidence": 0.0-1.0,
+ "reason": "Brief explanation"}
+\end{verbatim}
+
+\begin{thebibliography}{00}
+\bibitem{llamaguard}
+M. Inan et al., ``Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations,'' arXiv:2312.06674, 2023.
+
+\bibitem{promptguard}
+Meta, ``PromptGuard: A safeguard model against prompt injections and jailbreaks,'' 2024.
+
+\bibitem{nemoguardrails}
+T. Rebedea et al., ``NeMo Guardrails: A Toolkit for Controllable and Safe LLM Applications with Programmable Guardrails,'' arXiv:2310.10501, 2023.
+
+\bibitem{rebuff}
+ProtectAI, ``Rebuff: Prompt Injection Defense,'' GitHub Repository, 2023.
+
+\bibitem{wei_jailbroken}
+A. Wei, N. Haghtalab, and J. Steinhardt, ``Jailbroken: How Does LLM Safety Training Fail?,'' 2023.
+
+\bibitem{schulhoff_hackaprompt}
+S. Schulhoff et al., ``Ignore This Title and HackAPrompt: Exposing Systemic Vulnerabilities of LLMs through a Global Prompt Hacking Competition,'' 2023.
+
+\bibitem{greshake_indirect}
+K. Greshake et al., ``Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection,'' 2023.
+
+\bibitem{chen_indirect}
+Y. Chen et al., ``Can Indirect Prompt Injection Attacks Be Detected and Removed?,'' 2025.
+
+\bibitem{kovalchuk_method}
+Y. Kovalchuk and M. Kolomytsev, ``Method of Counteracting Manipulative Queries to Large Language Models,'' 2025.
+
+\bibitem{alzahrani_promptguard}
+A. Alzahrani, ``PromptGuard: A Structured Framework for Injection Resilient Language Models,'' \textit{Scientific Reports}, 2025.
+
+\bibitem{jain_baseline}
+N. Jain et al., ``Baseline Defenses for Adversarial Attacks Against Aligned Language Models,'' arXiv:2309.00614, 2023.
+\end{thebibliography}
 
 \end{document}
