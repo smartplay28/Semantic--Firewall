@@ -1,0 +1,5 @@
+metric,value
+total_attacks,56
+attacks_blocked,48
+attacks_passed,8
+resilience_score_pct,85.71

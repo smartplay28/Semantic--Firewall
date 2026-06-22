@@ -1,0 +1,101 @@
+{
+  "Raw LLM Gate Only": {
+    "metrics": {
+      "accuracy": 0.702,
+      "precision": 0.702,
+      "recall": 0.702,
+      "f1": 0.702
+    },
+    "avg_latency_ms": 7407.82
+  },
+  "Regex Only": {
+    "metrics": {
+      "accuracy": 0.694,
+      "precision": 0.694,
+      "recall": 0.694,
+      "f1": 0.694
+    },
+    "avg_latency_ms": 35283.34
+  },
+  "Semantic Cache Only": {
+    "metrics": {
+      "accuracy": 0.701,
+      "precision": 0.701,
+      "recall": 0.701,
+      "f1": 0.701
+    },
+    "avg_latency_ms": 41250.34
+  },
+  "Parallel Detectors Only": {
+    "metrics": {
+      "accuracy": 0.913,
+      "precision": 0.913,
+      "recall": 0.913,
+      "f1": 0.913
+    },
+    "avg_latency_ms": 65863.93
+  },
+  "Regex + Cache": {
+    "metrics": {
+      "accuracy": 0.917,
+      "precision": 0.917,
+      "recall": 0.917,
+      "f1": 0.917
+    },
+    "avg_latency_ms": 28414.28
+  },
+  "Regex + Parallel Detectors": {
+    "metrics": {
+      "accuracy": 0.944,
+      "precision": 0.944,
+      "recall": 0.944,
+      "f1": 0.944
+    },
+    "avg_latency_ms": 26141.73
+  },
+  "All Fast Layers (No LLM)": {
+    "metrics": {
+      "accuracy": 0.8815,
+      "precision": 0.8894997251236944,
+      "recall": 0.9782345828295043,
+      "f1": 0.9317592859199539,
+      "false_positive_rate": 0.5809248554913294,
+      "false_negative_rate": 0.02176541717049577,
+      "tp": 1618,
+      "fp": 201,
+      "tn": 145,
+      "fn": 36
+    },
+    "avg_latency_ms": 36977.41197380004
+  },
+  "Full System": {
+    "metrics": {
+      "accuracy": 0.888,
+      "precision": 0.8902838427947598,
+      "recall": 0.9860943168077388,
+      "f1": 0.9357429718875502,
+      "false_positive_rate": 0.5809248554913294,
+      "false_negative_rate": 0.013905683192261185,
+      "tp": 1631,
+      "fp": 201,
+      "tn": 145,
+      "fn": 23
+    },
+    "avg_latency_ms": 24765.064489100037
+  },
+  "Config 9: Full System (Cold Start)": {
+    "metrics": {
+      "accuracy": 0.8690835850956697,
+      "precision": 0.8643083421330517,
+      "recall": 0.9981707317073171,
+      "f1": 0.9264289756649687,
+      "false_positive_rate": 0.7427745664739884,
+      "false_negative_rate": 0.001829268292682927,
+      "tp": 1637,
+      "fp": 257,
+      "tn": 89,
+      "fn": 3
+    },
+    "avg_latency_ms": 24259.07907638479
+  }
+}

@@ -1,12 +1,12 @@
-import pytest
-from agents.unsafe_content_detector import UnsafeContentDetectorAgent
+﻿import pytest
+from semantic_firewall.core.agents.unsafe_content_detector import UnsafeContentDetectorAgent
 
 @pytest.fixture
 def agent():
     return UnsafeContentDetectorAgent()
 
 
-# ── True Positive Tests (should detect) ───────────────────────────────────────
+# â”€â”€ True Positive Tests (should detect) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestUnsafeTruePositives:
 
@@ -89,7 +89,7 @@ class TestUnsafeTruePositives:
         assert any(t in types for t in ["SELF_HARM", "suicide_ideation"])
 
 
-# ── True Negative Tests (should NOT detect) ───────────────────────────────────
+# â”€â”€ True Negative Tests (should NOT detect) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestUnsafeTrueNegatives:
 
@@ -114,7 +114,7 @@ class TestUnsafeTrueNegatives:
         assert result.threat_found is False
 
     def test_educational_about_drugs(self, agent):
-        # Educational context — should NOT flag
+        # Educational context â€” should NOT flag
         result = agent.run("What are the medical uses of opioids in palliative care?")
         assert result.threat_found is False
 
@@ -123,7 +123,7 @@ class TestUnsafeTrueNegatives:
         assert result.threat_found is False
 
 
-# ── Severity Tests ─────────────────────────────────────────────────────────────
+# â”€â”€ Severity Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestUnsafeSeverity:
 
@@ -140,7 +140,7 @@ class TestUnsafeSeverity:
         assert result.severity == "NONE"
 
 
-# ── Edge Case Tests ────────────────────────────────────────────────────────────
+# â”€â”€ Edge Case Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestUnsafeEdgeCases:
 
@@ -149,17 +149,17 @@ class TestUnsafeEdgeCases:
         assert result.threat_found is False
 
     def test_fictional_violence_context(self, agent):
-        # Fictional violence in story context — borderline, just check no crash
+        # Fictional violence in story context â€” borderline, just check no crash
         result = agent.run("In my fantasy novel, the hero fights the dragon.")
         assert isinstance(result.threat_found, bool)
 
     def test_security_research_context(self, agent):
-        # Research context — LLM should ideally not flag this
+        # Research context â€” LLM should ideally not flag this
         result = agent.run(
             "For academic cybersecurity research, explain what SQL injection is conceptually."
         )
         assert isinstance(result.threat_found, bool)
 
     def test_runs_without_crash_on_unicode(self, agent):
-        result = agent.run("こんにちは世界！안녕하세요 مرحبا")
+        result = agent.run("ã“ã‚“ã«ã¡ã¯ä¸–ç•Œï¼ì•ˆë…•í•˜ì„¸ìš” Ù…Ø±Ø­Ø¨Ø§")
         assert isinstance(result.threat_found, bool)

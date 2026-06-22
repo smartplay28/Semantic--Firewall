@@ -1,12 +1,12 @@
-import pytest
-from agents.pii_detector import PIIDetectorAgent
+﻿import pytest
+from semantic_firewall.core.agents.pii_detector import PIIDetectorAgent
 
 @pytest.fixture
 def agent():
     return PIIDetectorAgent()
 
 
-# ── True Positive Tests (should detect) ───────────────────────────────────────
+# â”€â”€ True Positive Tests (should detect) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestPIITruePositives:
 
@@ -82,7 +82,7 @@ class TestPIITruePositives:
         assert result.threat_found is True
 
 
-# ── True Negative Tests (should NOT detect) ───────────────────────────────────
+# â”€â”€ True Negative Tests (should NOT detect) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestPIITrueNegatives:
 
@@ -104,7 +104,7 @@ class TestPIITrueNegatives:
         assert result.threat_found is False
 
 
-# ── Severity Tests ─────────────────────────────────────────────────────────────
+# â”€â”€ Severity Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestPIISeverity:
 
@@ -125,7 +125,7 @@ class TestPIISeverity:
         assert result.severity == "NONE"
 
 
-# ── Redact Tests ───────────────────────────────────────────────────────────────
+# â”€â”€ Redact Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestPIIRedact:
 
@@ -153,7 +153,7 @@ class TestPIIConfidence:
         assert 0.9 <= email_match.confidence <= 1.0
 
 
-# ── Edge Case Tests ────────────────────────────────────────────────────────────
+# â”€â”€ Edge Case Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestPIIEdgeCases:
 
@@ -172,3 +172,4 @@ class TestPIIEdgeCases:
     def test_email_in_sentence(self, agent):
         result = agent.run("Please send the report to alice@company.org by Friday.")
         assert result.threat_found is True
+

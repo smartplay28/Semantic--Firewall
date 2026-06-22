@@ -1,0 +1,13 @@
+metric,value
+num_samples,2000
+toxic_samples,384
+benign_samples,1616
+true_positives,267
+false_positives,120
+true_negatives,1416
+false_negatives,71
+precision,0.6899
+recall,0.7899
+f1,0.7366
+accuracy,0.8981
+false_positive_rate,0.0781

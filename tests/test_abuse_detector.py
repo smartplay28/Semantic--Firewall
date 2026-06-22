@@ -1,15 +1,15 @@
-from unittest import result
+﻿from unittest import result
 from wsgiref import types
 
 import pytest
-from agents.abuse_detector import AbuseDetectorAgent
+from semantic_firewall.core.agents.abuse_detector import AbuseDetectorAgent
 
 @pytest.fixture
 def agent():
     return AbuseDetectorAgent()
 
 
-# ── True Positive Tests (should detect) ───────────────────────────────────────
+# â”€â”€ True Positive Tests (should detect) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestAbuseTruePositives:
 
@@ -106,7 +106,7 @@ class TestAbuseTruePositives:
         assert "invisible_char_injection" in types
 
 
-# ── True Negative Tests (should NOT detect) ───────────────────────────────────
+# â”€â”€ True Negative Tests (should NOT detect) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestAbuseTrueNegatives:
 
@@ -131,7 +131,7 @@ class TestAbuseTrueNegatives:
         assert result.threat_found is False
 
 
-# ── Severity Tests ─────────────────────────────────────────────────────────────
+# â”€â”€ Severity Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestAbuseSeverity:
 
@@ -152,7 +152,7 @@ class TestAbuseSeverity:
         assert result.severity == "NONE"
 
 
-# ── Edge Case Tests ────────────────────────────────────────────────────────────
+# â”€â”€ Edge Case Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestAbuseEdgeCases:
 
@@ -165,7 +165,7 @@ class TestAbuseEdgeCases:
         assert result.threat_found is False
 
     def test_normal_repeated_word_below_threshold(self, agent):
-        # "the" repeated 10 times — below threshold of 50
+        # "the" repeated 10 times â€” below threshold of 50
         result = agent.run("the " * 10)
         assert result.threat_found is False
 

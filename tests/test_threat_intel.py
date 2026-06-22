@@ -1,16 +1,19 @@
-from pathlib import Path
+﻿from pathlib import Path
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-import api as api_module
-from agents.threat_intel_detector import ThreatIntelDetectorAgent
-from orchestrator.orchestrator import SemanticFirewallOrchestrator
-from orchestrator.threat_intel import ThreatIntelFeedManager
+import semantic_firewall.apps.api_server as api_module
+from semantic_firewall.core.agents.threat_intel_detector import ThreatIntelDetectorAgent
+from semantic_firewall.core.orchestrator.orchestrator import SemanticFirewallOrchestrator
+from semantic_firewall.core.orchestrator.threat_intel import ThreatIntelFeedManager
+
+def _tmp_file(workspace_tmp_path: Path, stem: str, ext: str) -> Path:
+    return workspace_tmp_path / f"{stem}_{uuid4().hex}{ext}"
 
 
-def test_threat_intel_detector_matches_known_signature():
-    feed_path = Path("tests") / f"tmp_threat_intel_{uuid4().hex}.json"
+def test_threat_intel_detector_matches_known_signature(workspace_tmp_path: Path):
+    feed_path = _tmp_file(workspace_tmp_path, "tmp_threat_intel", ".json")
     manager = ThreatIntelFeedManager(str(feed_path))
     manager.add_entry(
         name="Known jailbreak token",
@@ -31,9 +34,9 @@ def test_threat_intel_detector_matches_known_signature():
     assert any(match.intel_id for match in result.matched)
 
 
-def test_orchestrator_applies_threat_intel_decision():
-    db_path = Path("tests") / f"tmp_audit_{uuid4().hex}.db"
-    feed_path = Path("tests") / f"tmp_threat_intel_{uuid4().hex}.json"
+def test_orchestrator_applies_threat_intel_decision(workspace_tmp_path: Path):
+    db_path = _tmp_file(workspace_tmp_path, "tmp_audit", ".db")
+    feed_path = _tmp_file(workspace_tmp_path, "tmp_threat_intel", ".json")
     manager = ThreatIntelFeedManager(str(feed_path))
     manager.add_entry(
         name="Remote code execution marker",
@@ -89,3 +92,6 @@ def test_api_threat_intel_crud():
 
     delete_response = client.delete(f"/threat-intel/{entry_id}")
     assert delete_response.status_code == 200
+
+
+

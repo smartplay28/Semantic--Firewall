@@ -1,14 +1,14 @@
-from unittest import result
+﻿from unittest import result
 
 import pytest
-from agents.secrets_detector import SecretsDetectorAgent
+from semantic_firewall.core.agents.secrets_detector import SecretsDetectorAgent
 
 @pytest.fixture
 def agent():
     return SecretsDetectorAgent()
 
 
-# ── True Positive Tests (should detect) ───────────────────────────────────────
+# â”€â”€ True Positive Tests (should detect) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestSecretsTruePositives:
 
@@ -99,7 +99,7 @@ class TestSecretsTruePositives:
         assert "bearer_token" in types
 
 
-# ── True Negative Tests (should NOT detect) ───────────────────────────────────
+# â”€â”€ True Negative Tests (should NOT detect) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestSecretsTrueNegatives:
 
@@ -116,7 +116,7 @@ class TestSecretsTrueNegatives:
         assert result.threat_found is False
 
 
-# ── Severity Tests ─────────────────────────────────────────────────────────────
+# â”€â”€ Severity Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestSecretsSeverity:
 
@@ -137,7 +137,7 @@ class TestSecretsSeverity:
         assert result.severity == "NONE"
 
 
-# ── Redact Tests ───────────────────────────────────────────────────────────────
+# â”€â”€ Redact Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestSecretsRedact:
 
@@ -164,7 +164,7 @@ class TestSecretsConfidence:
         assert 0.9 <= aws_match.confidence <= 1.0
 
 
-# ── Edge Case Tests ────────────────────────────────────────────────────────────
+# â”€â”€ Edge Case Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TestSecretsEdgeCases:
 
@@ -183,3 +183,4 @@ class TestSecretsEdgeCases:
         )
         assert result.threat_found is True
         assert len(result.matched) >= 2
+

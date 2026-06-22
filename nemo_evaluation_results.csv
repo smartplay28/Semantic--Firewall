@@ -1,0 +1,2 @@
+Dataset,Precision,Recall,F1,AvgLatency_ms
+Nemo_Guardrails_ToxicChat_Cold,0.721,0.669,0.694,845.2

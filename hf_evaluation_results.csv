@@ -1,0 +1,2 @@
+Dataset,Precision,Recall,F1,AvgLatency_ms
+HuggingFace_Prompt_Injections,0.9148936170212766,0.6354679802955665,0.7499999999999999,6784.713525038499

@@ -1,4 +1,4 @@
-version: "3.9"
+﻿version: "3.9"
 
 services:
   api:
@@ -8,7 +8,7 @@ services:
       - "8000:8000"
     volumes:
       - ./:/app
-    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn semantic_firewall.apps.api_server:app --host 0.0.0.0 --port 8000 --reload
 
   ui:
     build: .
@@ -17,7 +17,7 @@ services:
       - "8501:8501"
     volumes:
       - ./:/app
-    command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+    command: streamlit run semantic_firewall/apps/dashboard.py --server.port 8501 --server.address 0.0.0.0
     depends_on:
       - api
 
