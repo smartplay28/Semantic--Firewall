@@ -300,12 +300,11 @@ Claude 3.5 Haiku & 94.70\% & 74.30\% & 83.20\% & 1,156 ms \\
 \multicolumn{5}{@{}l}{\textbf{Dedicated Security Classifiers}} \\
 \midrule
 Llama Guard 4 (12B) & 92.50\% & 35.50\% & 51.30\% & 564 ms \\
-GPT-OSS-Safeguard (20B) & 24.10\% & 3.80\% & 6.60\% & 2,530 ms \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Comparison Fairness:} We emphasize that this comparison is between a multi-component system and single-model API endpoints. The Semantic Firewall's advantage is architectural rather than model-level: the Regex/Cache layers catch structural attacks that standalone models miss, boosting system-level Recall. Additionally, our latency figures represent pure compute time, whereas commercial API latencies include network round-trip. Notably, the high latency of GPT-OSS-Safeguard (2,530 ms) is due to its reliance on unoptimized dense attention without Flash Attention and suboptimal local serving infrastructure compared to commercial endpoints.
+\textbf{Comparison Fairness:} We emphasize that this comparison is between a multi-component system and single-model API endpoints. The Semantic Firewall's advantage is architectural rather than model-level: the Regex/Cache layers catch structural attacks that standalone models miss, boosting system-level Recall. Additionally, our latency figures represent pure compute time, whereas commercial API latencies include network round-trip.
 
 The Semantic Firewall achieves the highest F1 (92.64\%), outperforming GPT-4o by $\sim$2.6 F1 points. While commercial APIs achieve higher raw Precision, their Recall is consistently lower (GPT-4o: 84.60\% vs. our 99.82\%). Statistical significance was verified using McNemar's test on paired predictions (Table~\ref{tab:mcnemar}).
 
@@ -345,7 +344,6 @@ The off-diagonal entries (152 vs. 118) yield $\chi^2 = \frac{(152-118)^2}{152+11
 \filldraw[orange!80!black] (3.7,3.4) circle (2pt) node[right] {Claude};
 \filldraw[purple!70!black] (4.7,3.1) circle (2pt) node[right] {Gemini};
 \filldraw[gray!60!black] (1.6,0.7) circle (2pt) node[right] {LlamaGuard};
-\filldraw[gray!40!black] (5.8,0.3) circle (2pt) node[left] {Safeguard};
 % Pareto frontier
 \draw[dashed, blue!50, thick] (0.5,5.0) .. controls (1.2,4.8) and (2.0,4.4) .. (3.0,3.8) .. controls (4.0,3.3) and (5.0,2.5) .. (6.2,1.5);
 \end{tikzpicture}
@@ -433,7 +431,7 @@ Attackers frequently use multi-turn context windows to slowly build a benign per
 
 \subsection{Scaled Red Team Resilience}
 
-We evaluated the firewall against 212 manually crafted, highly complex, out-of-distribution attacks (including multi-turn persona adoption, advanced base64 steganography, and hypothetical academic framing). OpenAI's GPT-4o-mini achieved a mere \textbf{0.94\% Resilience Score} (2/212 blocked). Anthropic's Claude 3 Haiku achieved \textbf{79.24\%} (168/212). Our Semantic Firewall achieved \textbf{85.85\%} (182/212). Table~\ref{tab:redteam-breakdown} provides a per-category breakdown.
+We evaluated the firewall against 212 manually crafted, highly complex, out-of-distribution attacks (including multi-turn persona adoption, advanced base64 steganography, and hypothetical academic framing). The Semantic Firewall successfully blocked 182 out of 212 zero-day attacks, achieving an \textbf{85.85\% Resilience Score}. Table~\ref{tab:redteam-breakdown} provides a per-category breakdown.
 
 \begin{table}[htbp]
 \centering
