@@ -315,14 +315,6 @@ ws://localhost:8000/ws/analyze
 | **Recall** | **79.16%** |
 | **F1 Score** | **73.66%** |
 
-### Red Team Adversarial Testing (Zero-Day Attacks)
-
-| Metric | Score |
-|---|---|
-| Attacks Launched | 210 (dynamically generated via LLM) |
-| Attacks Blocked | 184 |
-| **Firewall Resilience Score** | **87.59%** |
-
 ### Running Benchmarks
 
 ```bash
