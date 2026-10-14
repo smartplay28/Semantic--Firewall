@@ -1,0 +1,72 @@
+{
+  "description": "Poison = target + payload. If cached, the target (and trivially edited copies) is blocked when sim >= tau.",
+  "n_targets": 200,
+  "rows": [
+    {
+      "payload": "short_canonical",
+      "tau": 0.65,
+      "target_blocked_rate": 0.965,
+      "variant_blocked_rate": 0.966,
+      "collateral_benign_blocked_rate": 0.6025641025641025,
+      "median_target_poison_similarity": 0.818438708782196,
+      "mean_poison_chars": 127.41
+    },
+    {
+      "payload": "short_canonical",
+      "tau": 0.8,
+      "target_blocked_rate": 0.595,
+      "variant_blocked_rate": 0.589,
+      "collateral_benign_blocked_rate": 0.32051282051282054,
+      "median_target_poison_similarity": 0.818438708782196,
+      "mean_poison_chars": 127.41
+    },
+    {
+      "payload": "short_canonical",
+      "tau": 0.9,
+      "target_blocked_rate": 0.16,
+      "variant_blocked_rate": 0.166,
+      "collateral_benign_blocked_rate": 0.08205128205128205,
+      "median_target_poison_similarity": 0.818438708782196,
+      "mean_poison_chars": 127.41
+    },
+    {
+      "payload": "dataset_attack",
+      "tau": 0.65,
+      "target_blocked_rate": 0.555,
+      "variant_blocked_rate": 0.543,
+      "collateral_benign_blocked_rate": 0.34615384615384615,
+      "median_target_poison_similarity": 0.6630495190620422,
+      "mean_poison_chars": 172.69
+    },
+    {
+      "payload": "dataset_attack",
+      "tau": 0.8,
+      "target_blocked_rate": 0.21,
+      "variant_blocked_rate": 0.209,
+      "collateral_benign_blocked_rate": 0.11025641025641025,
+      "median_target_poison_similarity": 0.6630495190620422,
+      "mean_poison_chars": 172.69
+    },
+    {
+      "payload": "dataset_attack",
+      "tau": 0.9,
+      "target_blocked_rate": 0.035,
+      "variant_blocked_rate": 0.038,
+      "collateral_benign_blocked_rate": 0.017948717948717947,
+      "median_target_poison_similarity": 0.6630495190620422,
+      "mean_poison_chars": 172.69
+    }
+  ],
+  "poison_flagged_by_deterministic_stage": {
+    "short_canonical": 0.81,
+    "dataset_attack": 0.25
+  },
+  "meta": {
+    "timestamp_utc": "2026-10-06T01:08:45.927083+00:00",
+    "python": "3.13.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 18,
+    "code_fingerprint": "a36cc7e46060ba60"
+  }
+}

@@ -1,0 +1,161 @@
+{
+  "description": "K benign validation prompts are (wrongly) cached as threats; how many unseen benign prompts get blocked?",
+  "n_test_benign": 390,
+  "rows": [
+    {
+      "k_false_positives_cached": 1,
+      "tau": 0.65,
+      "induced_fpr_mean": 0.006666666666666666,
+      "induced_fpr_max": 0.01282051282051282,
+      "attacks_caught_by_poison_mean": 0.0
+    },
+    {
+      "k_false_positives_cached": 1,
+      "tau": 0.8,
+      "induced_fpr_mean": 0.0010256410256410256,
+      "induced_fpr_max": 0.002564102564102564,
+      "attacks_caught_by_poison_mean": 0.0
+    },
+    {
+      "k_false_positives_cached": 1,
+      "tau": 0.9,
+      "induced_fpr_mean": 0.0005128205128205128,
+      "induced_fpr_max": 0.002564102564102564,
+      "attacks_caught_by_poison_mean": 0.0
+    },
+    {
+      "k_false_positives_cached": 5,
+      "tau": 0.65,
+      "induced_fpr_mean": 0.03282051282051282,
+      "induced_fpr_max": 0.04358974358974359,
+      "attacks_caught_by_poison_mean": 0.0018115942028985507
+    },
+    {
+      "k_false_positives_cached": 5,
+      "tau": 0.8,
+      "induced_fpr_mean": 0.0035897435897435897,
+      "induced_fpr_max": 0.010256410256410256,
+      "attacks_caught_by_poison_mean": 0.0010869565217391304
+    },
+    {
+      "k_false_positives_cached": 5,
+      "tau": 0.9,
+      "induced_fpr_mean": 0.0005128205128205128,
+      "induced_fpr_max": 0.002564102564102564,
+      "attacks_caught_by_poison_mean": 0.0
+    },
+    {
+      "k_false_positives_cached": 10,
+      "tau": 0.65,
+      "induced_fpr_mean": 0.05692307692307692,
+      "induced_fpr_max": 0.07948717948717948,
+      "attacks_caught_by_poison_mean": 0.0018115942028985507
+    },
+    {
+      "k_false_positives_cached": 10,
+      "tau": 0.8,
+      "induced_fpr_mean": 0.008205128205128205,
+      "induced_fpr_max": 0.015384615384615385,
+      "attacks_caught_by_poison_mean": 0.0010869565217391304
+    },
+    {
+      "k_false_positives_cached": 10,
+      "tau": 0.9,
+      "induced_fpr_mean": 0.0020512820512820513,
+      "induced_fpr_max": 0.002564102564102564,
+      "attacks_caught_by_poison_mean": 0.0
+    },
+    {
+      "k_false_positives_cached": 25,
+      "tau": 0.65,
+      "induced_fpr_mean": 0.14307692307692307,
+      "induced_fpr_max": 0.18461538461538463,
+      "attacks_caught_by_poison_mean": 0.0036231884057971015
+    },
+    {
+      "k_false_positives_cached": 25,
+      "tau": 0.8,
+      "induced_fpr_mean": 0.024102564102564103,
+      "induced_fpr_max": 0.038461538461538464,
+      "attacks_caught_by_poison_mean": 0.002898550724637681
+    },
+    {
+      "k_false_positives_cached": 25,
+      "tau": 0.9,
+      "induced_fpr_mean": 0.005641025641025641,
+      "induced_fpr_max": 0.01282051282051282,
+      "attacks_caught_by_poison_mean": 0.00036231884057971015
+    },
+    {
+      "k_false_positives_cached": 50,
+      "tau": 0.65,
+      "induced_fpr_mean": 0.24871794871794872,
+      "induced_fpr_max": 0.2692307692307692,
+      "attacks_caught_by_poison_mean": 0.007608695652173913
+    },
+    {
+      "k_false_positives_cached": 50,
+      "tau": 0.8,
+      "induced_fpr_mean": 0.038461538461538464,
+      "induced_fpr_max": 0.046153846153846156,
+      "attacks_caught_by_poison_mean": 0.005434782608695652
+    },
+    {
+      "k_false_positives_cached": 50,
+      "tau": 0.9,
+      "induced_fpr_mean": 0.009230769230769232,
+      "induced_fpr_max": 0.015384615384615385,
+      "attacks_caught_by_poison_mean": 0.00036231884057971015
+    },
+    {
+      "k_false_positives_cached": 100,
+      "tau": 0.65,
+      "induced_fpr_mean": 0.3912820512820513,
+      "induced_fpr_max": 0.4153846153846154,
+      "attacks_caught_by_poison_mean": 0.007971014492753623
+    },
+    {
+      "k_false_positives_cached": 100,
+      "tau": 0.8,
+      "induced_fpr_mean": 0.0758974358974359,
+      "induced_fpr_max": 0.09743589743589744,
+      "attacks_caught_by_poison_mean": 0.007971014492753623
+    },
+    {
+      "k_false_positives_cached": 100,
+      "tau": 0.9,
+      "induced_fpr_mean": 0.024615384615384615,
+      "induced_fpr_max": 0.04358974358974359,
+      "attacks_caught_by_poison_mean": 0.0014492753623188406
+    },
+    {
+      "k_false_positives_cached": 200,
+      "tau": 0.65,
+      "induced_fpr_mean": 0.5456410256410256,
+      "induced_fpr_max": 0.5692307692307692,
+      "attacks_caught_by_poison_mean": 0.010507246376811594
+    },
+    {
+      "k_false_positives_cached": 200,
+      "tau": 0.8,
+      "induced_fpr_mean": 0.13641025641025642,
+      "induced_fpr_max": 0.14871794871794872,
+      "attacks_caught_by_poison_mean": 0.010507246376811594
+    },
+    {
+      "k_false_positives_cached": 200,
+      "tau": 0.9,
+      "induced_fpr_mean": 0.045641025641025644,
+      "induced_fpr_max": 0.06153846153846154,
+      "attacks_caught_by_poison_mean": 0.0018115942028985507
+    }
+  ],
+  "meta": {
+    "timestamp_utc": "2026-10-06T01:07:14.334463+00:00",
+    "python": "3.13.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 18,
+    "code_fingerprint": "a36cc7e46060ba60"
+  }
+}

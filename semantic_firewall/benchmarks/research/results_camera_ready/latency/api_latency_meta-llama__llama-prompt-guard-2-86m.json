@@ -1,0 +1,18 @@
+{
+  "model": "meta-llama/llama-prompt-guard-2-86m",
+  "n": 100,
+  "warmup_excluded": 5,
+  "errors": 0,
+  "mean_ms": 188.65886299972772,
+  "p50_ms": 165.9684499991272,
+  "p95_ms": 226.18194999940889,
+  "p99_ms": 859.986831000644,
+  "meta": {
+    "timestamp_utc": "2026-10-07T18:53:40.650736+00:00",
+    "python": "3.13.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 18,
+    "code_fingerprint": "71e120cb9e8c9d89"
+  }
+}

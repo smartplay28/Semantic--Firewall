@@ -1,0 +1,33 @@
+{
+  "description": "Lookup latency as the threat cache grows; eviction keeps it at the cap.",
+  "rows": [
+    {
+      "entries": 1000,
+      "lookup_mean_ms": 31.115664499920968,
+      "lookup_p95_ms": 83.64729499953683
+    },
+    {
+      "entries": 5000,
+      "lookup_mean_ms": 19.52652499960095,
+      "lookup_p95_ms": 57.41588499768114
+    },
+    {
+      "entries": 20000,
+      "lookup_mean_ms": 19.364133000271977,
+      "lookup_p95_ms": 43.07084500251222
+    }
+  ],
+  "eviction_check": {
+    "inserted": 2000,
+    "max_entries": 500,
+    "remaining": 500
+  },
+  "meta": {
+    "timestamp_utc": "2026-10-06T03:20:47.798627+00:00",
+    "python": "3.13.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 18,
+    "code_fingerprint": "a36cc7e46060ba60"
+  }
+}

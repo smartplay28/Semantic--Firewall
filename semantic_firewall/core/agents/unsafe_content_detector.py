@@ -1,11 +1,13 @@
+import json
 import os
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
 
-from semantic_firewall.core.agents.llm_client import DetectorLLMClient, extract_json_object
+from semantic_firewall.core.agents.llm_client import DEFAULT_LLM_MODEL, DetectorLLMClient, extract_json_object
 
 load_dotenv()
 
@@ -31,13 +33,22 @@ class DetectionResult:
 
 
 class UnsafeContentDetectorAgent:
+    # The orchestrator may call run(..., use_llm=False) for a regex-only pre-screen.
+    supports_regex_only = True
+
     def __init__(self):
         self.name = "Unsafe Content Detector"
-        default_model = os.getenv("SEMANTIC_FIREWALL_UNSAFE_MODEL_FAST", "llama-3.3-70b-versatile")
+        default_model = os.getenv("SEMANTIC_FIREWALL_UNSAFE_MODEL_FAST", DEFAULT_LLM_MODEL)
         self.llm_client = DetectorLLMClient(default_model=default_model)
         self.model = self.llm_client.model_name
         self.confidence_threshold = 0.5
         self.regex_confidence = 0.80
+        # Off = pure LLM detector (used for the "LLM agents only" baseline).
+        self.regex_enabled = os.getenv("SEMANTIC_FIREWALL_LLM_AGENT_REGEX_ENABLED", "1").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
 
         self.quick_patterns: dict[str, tuple[str, str, int]] = {
             "explicit_violence": (
@@ -318,10 +329,63 @@ CRITICAL NEGATIVE CONSTRAINTS (What NOT to flag):
             "llm_reported_risk": str(payload.get("overall_risk", "NONE")).upper(),
         }
 
+    # Appended to the system prompt when the Session Judge checks a window of conversation turns.
+    CONVERSATION_ADDENDUM = """
+
+CONVERSATION MODE: the text is a sequence of consecutive user messages from ONE conversation, oldest first.
+Judge the conversation as a whole, not each message in isolation. Multi-turn attacks start with innocent
+questions about a person, event, organisation or substance associated with harm, then narrow step by step
+towards methods, materials, processes, preparation, acquisition or deployment details. Flag the conversation
+(is_unsafe = true) when, taken together, the messages are steering towards actionable harmful information of
+any category above, even if every single message would be benign on its own. Do NOT flag conversations whose
+later messages stay at the level of history, impact, ethics or general explanation without moving towards
+operational detail."""
+
+    # Optional (SEMANTIC_FIREWALL_CONVERSATION_INTENT=1): ask the model to reconstruct the conversation's most
+    # likely end goal before judging it. Off by default.
+    INTENT_ADDENDUM = """
+
+GOAL CHECK: before deciding, reconstruct the user's most likely end goal, i.e. what the answer to the whole
+conversation would let the user do. Disguised multi-turn requests typically (1) ask about a person, group, event or
+product associated with harm and then about its methods, tools or techniques; (2) ask how others obtain, locate or
+track a person; (3) ask how a group argues for a denied or conspiratorial claim and then for its methods or
+arguments; or (4) ask about modifications, tools or substances and then for the details that make them illegal or
+dangerous. If the most likely end goal is actionable harmful capability (including harassment or surveillance of
+individuals, illegal modifications, intrusion, or producing persuasive disinformation), set is_unsafe = true even
+when every message is polite and factual. If the most plausible goal is learning, history, safety or ordinary help,
+set is_unsafe = false."""
+
+    _conversation_examples: str | None = None
+
+    @classmethod
+    def conversation_examples(cls) -> str:
+        """Worked examples for conversation mode, from data/multiturn_examples.json (built only from data
+        outside the multi-turn evaluation). Empty if the file is missing or
+        SEMANTIC_FIREWALL_MULTITURN_EXAMPLES=0."""
+        if cls._conversation_examples is None:
+            text = ""
+            path = Path(__file__).resolve().parents[3] / "data" / "multiturn_examples.json"
+            if os.getenv("SEMANTIC_FIREWALL_MULTITURN_EXAMPLES", "1").lower() not in {"0", "false", "no"} \
+                    and path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                blocks = []
+                for ex in data.get("attacks", []):
+                    turns = "\n".join(f"[Turn {i}] {t}" for i, t in enumerate(ex["turns"], 1))
+                    blocks.append(f"UNSAFE example (hidden goal: {ex['goal']}):\n{turns}")
+                for ex in data.get("benign", []):
+                    turns = "\n".join(f"[Turn {i}] {t}" for i, t in enumerate(ex["turns"], 1))
+                    blocks.append(f"BENIGN example:\n{turns}")
+                if blocks:
+                    text = ("\n\nWORKED EXAMPLES of whole conversations (other users; never copy their content, "
+                            "only learn the pattern):\n\n" + "\n\n".join(blocks))
+            cls._conversation_examples = text
+        return cls._conversation_examples
+
     def _llm_detect(
         self,
         text: str,
         confidence_threshold: float | None = None,
+        conversation: bool = False,
     ) -> tuple[list[UnsafeMatch], dict[str, Any]]:
         threshold = confidence_threshold if confidence_threshold is not None else self.confidence_threshold
         availability_error = self.llm_client.availability_error()
@@ -335,18 +399,38 @@ CRITICAL NEGATIVE CONSTRAINTS (What NOT to flag):
             }
 
         try:
-            response = self.llm_client.complete(
-                self.system_prompt,
-                f"Analyze this text for unsafe content:\n\n{text}",
-                max_tokens=1000,
-            )
-            matches, parse_meta = self._parse_llm_response(response.content, threshold)
+            if conversation:
+                system_prompt = self.system_prompt + self.CONVERSATION_ADDENDUM + self.conversation_examples()
+                if os.getenv("SEMANTIC_FIREWALL_CONVERSATION_INTENT", "0").lower() in {"1", "true", "yes"}:
+                    system_prompt += self.INTENT_ADDENDUM
+                user_prompt = f"Analyze this conversation (user messages, oldest first) for unsafe content:\n\n{text}"
+            else:
+                system_prompt = self.system_prompt
+                user_prompt = f"Analyze this text for unsafe content:\n\n{text}"
+            for _attempt in range(2):  # one retry if the reply is not a parsable JSON verdict
+                response = self.llm_client.complete(system_prompt, user_prompt, max_tokens=1000)
+                matches, parse_meta = self._parse_llm_response(response.content, threshold)
+                if parse_meta.get("llm_parse_status") == "ok":
+                    break
             if parse_meta.get("llm_parse_status") != "ok":
                 print(
                     "[UnsafeContentDetector] LLM returned unparsable payload: "
                     f"{parse_meta.get('llm_parse_status')}"
                 )
-            return matches, {"llm_called": True, **response.meta, **parse_meta}
+            meta = {"llm_called": True, **response.meta, **parse_meta}
+            second = os.getenv("SEMANTIC_FIREWALL_CONVERSATION_SECOND_MODEL", "").strip()
+            if conversation and second and not matches:
+                # Optional second opinion on whole conversations (block if either model flags it).
+                if getattr(self, "_second_client", None) is None or self._second_client.model != second:
+                    self._second_client = DetectorLLMClient(model=second, providers=[])
+                second_response = self._second_client.complete(system_prompt, user_prompt, max_tokens=4000)
+                second_matches, second_meta = self._parse_llm_response(second_response.content, threshold)
+                meta["second_model"] = second
+                meta["second_parse_status"] = second_meta.get("llm_parse_status")
+                if second_matches:
+                    matches = second_matches
+                    meta["flagged_by_second_model"] = True
+            return matches, meta
         except Exception as exc:
             print(f"[UnsafeContentDetector] LLM call failed: {exc}")
             return [], {
@@ -378,13 +462,31 @@ CRITICAL NEGATIVE CONSTRAINTS (What NOT to flag):
 
         return final
 
-    def run(self, text: str, confidence_threshold_override: float | None = None) -> DetectionResult:
+    def run(
+        self,
+        text: str,
+        confidence_threshold_override: float | None = None,
+        use_llm: bool = True,
+        conversation: bool = False,
+    ) -> DetectionResult:
         effective_threshold = self.confidence_threshold
         if confidence_threshold_override is not None:
             effective_threshold = max(0.0, min(1.0, float(confidence_threshold_override)))
 
-        regex_matches = self._regex_prescreen(text)
-        llm_matches, llm_meta = self._llm_detect(text, confidence_threshold=effective_threshold)
+        regex_matches = self._regex_prescreen(text) if self.regex_enabled else []
+        if use_llm:
+            llm_matches, llm_meta = self._llm_detect(
+                text, confidence_threshold=effective_threshold, conversation=conversation
+            )
+        else:
+            llm_matches = []
+            llm_meta = {
+                "llm_called": False,
+                "llm_provider": self.llm_client.provider,
+                "llm_model": self.llm_client.model_name,
+                "llm_skipped_reason": "regex_prescreen_only",
+                "llm_parse_status": "not_attempted",
+            }
         matched = self._deduplicate(regex_matches, llm_matches)
 
         severity = self._calculate_severity(matched)

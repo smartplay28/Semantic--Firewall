@@ -94,6 +94,40 @@ class OrchestratorSettings(BaseModel):
     llm_gate_enabled: bool = True
     llm_gate_threshold: float = Field(default=1.0, ge=0.0)
     disable_llm_detectors: bool = False
+    # Levenshtein repair of typo/leetspeak keywords before keyword regexes.
+    fuzzy_keywords_enabled: bool = True
+    # Session Judge sliding window: previous user turns re-checked with the current one.
+    session_window_turns: int = Field(default=3, ge=1)
+    session_window_unsafe: bool = True
+    # conversation-level semantic memory of known multi-turn attacks (off unless seeded and enabled)
+    session_memory_enabled: bool = False
+    session_memory_threshold: float = Field(default=0.60, ge=0.0, le=1.0)
+    session_memory_path: str = ""
+    # Skip the LLM stage when the deterministic stage already returns BLOCK.
+    early_exit_on_block: bool = True
+    # Comma-separated agent names to leave out (used for per-detector ablations).
+    disabled_agents: str = ""
+
+    # Semantic memory (ChromaDB). Thresholds are cosine similarities in [0, 1].
+    semantic_cache_enabled: bool = True
+    semantic_cache_path: str = ""
+    cache_similarity_threshold: float = Field(default=0.65, ge=0.0, le=1.0)
+    allowlist_similarity_threshold: float = Field(default=0.90, ge=0.0, le=1.0)
+    cache_writeback: bool = True
+    cache_writeback_require_llm: bool = True
+    cache_writeback_min_confidence: float = Field(default=0.85, ge=0.0, le=1.0)
+    cache_max_entries: int = Field(default=10000, ge=1)
+    # Write-back safeguards (see SemanticCache); all off by default.
+    cache_overlap_check: bool = False
+    cache_probation_threshold: float = Field(default=0.0, ge=0.0, le=1.0)  # 0 = no probationary tier
+    cache_promote_after: int = Field(default=2, ge=1)
+    cache_ttl_requests: int = Field(default=0, ge=0)  # 0 = no expiry
+    cache_revalidate_rate: float = Field(default=0.0, ge=0.0, le=1.0)
+    # "skip_llm": an allowlist hit skips the threat cache and the LLM stage but the
+    # deterministic detectors still run. "bypass": legacy behaviour, skips everything.
+    allowlist_mode: Literal["skip_llm", "bypass"] = "skip_llm"
+
+    audit_enabled: bool = True
 
     agent_timeout_default_sec: float = Field(default=8.0, ge=0.05)
     agent_timeout_pii_sec: float = Field(default=6.0, ge=0.05)
@@ -126,6 +160,29 @@ class OrchestratorSettings(BaseModel):
             llm_gate_enabled=_read_bool("SEMANTIC_FIREWALL_LLM_GATE_ENABLED", True),
             llm_gate_threshold=_read_float("SEMANTIC_FIREWALL_LLM_GATE_THRESHOLD", 1.0),
             disable_llm_detectors=_read_bool("SEMANTIC_FIREWALL_DISABLE_LLM_DETECTORS", False),
+            fuzzy_keywords_enabled=_read_bool("SEMANTIC_FIREWALL_FUZZY_KEYWORDS_ENABLED", True),
+            session_window_turns=_read_int("SEMANTIC_FIREWALL_SESSION_WINDOW_TURNS", 3),
+            session_window_unsafe=_read_bool("SEMANTIC_FIREWALL_SESSION_WINDOW_UNSAFE", True),
+            session_memory_enabled=_read_bool("SEMANTIC_FIREWALL_SESSION_MEMORY_ENABLED", False),
+            session_memory_threshold=_read_float("SEMANTIC_FIREWALL_SESSION_MEMORY_THRESHOLD", 0.60),
+            session_memory_path=os.getenv("SEMANTIC_FIREWALL_SESSION_MEMORY_PATH", ""),
+            early_exit_on_block=_read_bool("SEMANTIC_FIREWALL_EARLY_EXIT_ON_BLOCK", True),
+            disabled_agents=os.getenv("SEMANTIC_FIREWALL_DISABLED_AGENTS", ""),
+            semantic_cache_enabled=_read_bool("SEMANTIC_FIREWALL_SEMANTIC_CACHE_ENABLED", True),
+            semantic_cache_path=os.getenv("SEMANTIC_FIREWALL_SEMANTIC_CACHE_PATH", ""),
+            cache_similarity_threshold=_read_float("SEMANTIC_FIREWALL_CACHE_SIM_THRESHOLD", 0.65),
+            allowlist_similarity_threshold=_read_float("SEMANTIC_FIREWALL_ALLOWLIST_SIM_THRESHOLD", 0.90),
+            cache_writeback=_read_bool("SEMANTIC_FIREWALL_CACHE_WRITEBACK", True),
+            cache_writeback_require_llm=_read_bool("SEMANTIC_FIREWALL_CACHE_WRITEBACK_REQUIRE_LLM", True),
+            cache_writeback_min_confidence=_read_float("SEMANTIC_FIREWALL_CACHE_WRITEBACK_MIN_CONFIDENCE", 0.85),
+            cache_max_entries=_read_int("SEMANTIC_FIREWALL_CACHE_MAX_ENTRIES", 10000),
+            cache_overlap_check=_read_bool("SEMANTIC_FIREWALL_CACHE_OVERLAP_CHECK", False),
+            cache_probation_threshold=_read_float("SEMANTIC_FIREWALL_CACHE_PROBATION_THRESHOLD", 0.0),
+            cache_promote_after=_read_int("SEMANTIC_FIREWALL_CACHE_PROMOTE_AFTER", 2),
+            cache_ttl_requests=_read_int("SEMANTIC_FIREWALL_CACHE_TTL_REQUESTS", 0),
+            cache_revalidate_rate=_read_float("SEMANTIC_FIREWALL_CACHE_REVALIDATE_RATE", 0.0),
+            allowlist_mode=os.getenv("SEMANTIC_FIREWALL_ALLOWLIST_MODE", "skip_llm").strip().lower(),
+            audit_enabled=_read_bool("SEMANTIC_FIREWALL_AUDIT_ENABLED", True),
             agent_timeout_default_sec=_read_float("SEMANTIC_FIREWALL_AGENT_TIMEOUT_DEFAULT_SEC", 8.0),
             agent_timeout_pii_sec=_read_float("SEMANTIC_FIREWALL_AGENT_TIMEOUT_PII_SEC", 6.0),
             agent_timeout_secrets_sec=_read_float("SEMANTIC_FIREWALL_AGENT_TIMEOUT_SECRETS_SEC", 6.0),

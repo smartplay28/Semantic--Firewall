@@ -1,0 +1,29 @@
+{
+  "description": "Approved prompt + injection payload: allowed outright in 'bypass' mode; detectors still run in 'skip_llm' mode.",
+  "n": 100,
+  "allowlist_threshold": 0.9,
+  "fraction_matching_allowlist": 0.04,
+  "median_similarity": 0.704068660736084,
+  "modes": {
+    "bypass": {
+      "attacks_allowed_rate": 0.74,
+      "allowlist_hits": 4,
+      "allowed_among_allowlist_hits": 1.0,
+      "payload_alone_caught_rate": 0.32
+    },
+    "skip_llm": {
+      "attacks_allowed_rate": 0.7,
+      "allowlist_hits": 4,
+      "allowed_among_allowlist_hits": 0.0,
+      "payload_alone_caught_rate": 0.32
+    }
+  },
+  "meta": {
+    "timestamp_utc": "2026-10-06T01:16:01.770152+00:00",
+    "python": "3.13.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 18,
+    "code_fingerprint": "a36cc7e46060ba60"
+  }
+}

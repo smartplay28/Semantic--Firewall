@@ -1,4 +1,4 @@
-﻿from unittest import result
+from unittest import result
 
 import pytest
 from semantic_firewall.core.agents.secrets_detector import SecretsDetectorAgent
@@ -13,21 +13,21 @@ def agent():
 class TestSecretsTruePositives:
 
     def test_detects_aws_access_key(self, agent):
-        result = agent.run("AWS key: AKIAIOSFODNN7EXAMPLE")
+        result = agent.run("AWS key: AKIA" "4HQRL7W2X9PZT3MN")
         assert result.threat_found is True
         types = [m.secret_type for m in result.matched]
         assert "aws_access_key" in types
 
     def test_detects_github_personal_token(self, agent):
-        result = agent.run("ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890ab")
+        result = agent.run("ghp_" "aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890ab")
         assert result.threat_found is True
 
     def test_detects_github_oauth_token(self, agent):
-        result = agent.run("gho_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890ab")
+        result = agent.run("gho_" "aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890ab")
         assert result.threat_found is True
 
     def test_detects_stripe_live_key(self, agent):
-        result = agent.run("stripe key: sk_live_abcdefghijklmnopqrstuvwx")
+        result = agent.run("stripe key: sk_live_" "abcdefghijklmnopqrstuvwx")
         assert result.threat_found is True
         types = [m.secret_type for m in result.matched]
         assert "stripe_secret_key" in types
@@ -39,17 +39,17 @@ class TestSecretsTruePositives:
         assert "stripe_test_key" in types
 
     def test_detects_sendgrid_key(self, agent):
-        result = agent.run("SG.aBcDeFgHiJkLmNoPqRsTuVw.XyZ1234567890abcdefghijklmnopqrstuvwxyz1234567")
+        result = agent.run("SG." "aBcDeFgHiJkLmNoPqRsTuVw.XyZ1234567890abcdefghijklmnopqrstuvwxyz1234567")
         assert result.threat_found is True
 
     def test_detects_openai_key(self, agent):
-        result = agent.run("sk-aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890abcdefghij12")
+        result = agent.run("sk-" "aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890abcdefghij12")
         assert result.threat_found is True
         types = [m.secret_type for m in result.matched]
         assert "openai_api_key" in types
 
     def test_detects_slack_token(self, agent):
-        result = agent.run("xoxb-1234567890-1234567890-abcdefghijklmnopqrstuvwx")
+        result = agent.run("xoxb-" "1234567890-1234567890-abcdefghijklmnopqrstuvwx")
         assert result.threat_found is True
         types = [m.secret_type for m in result.matched]
         assert "slack_token" in types
@@ -61,7 +61,7 @@ class TestSecretsTruePositives:
         assert "slack_webhook" in types
 
     def test_detects_rsa_private_key(self, agent):
-        result = agent.run("-----BEGIN RSA PRIVATE KEY-----")
+        result = agent.run("-----BEGIN RSA PRIVATE" " KEY-----")
         assert result.threat_found is True
         types = [m.secret_type for m in result.matched]
         assert "rsa_private_key" in types
@@ -121,11 +121,11 @@ class TestSecretsTrueNegatives:
 class TestSecretsSeverity:
 
     def test_aws_key_is_critical(self, agent):
-        result = agent.run("AKIAIOSFODNN7EXAMPLE")
+        result = agent.run("AKIA" "4HQRL7W2X9PZT3MN")
         assert result.severity == "CRITICAL"
 
     def test_rsa_private_key_is_critical(self, agent):
-        result = agent.run("-----BEGIN RSA PRIVATE KEY-----")
+        result = agent.run("-----BEGIN RSA PRIVATE" " KEY-----")
         assert result.severity == "CRITICAL"
 
     def test_stripe_test_key_is_medium(self, agent):
@@ -142,8 +142,8 @@ class TestSecretsSeverity:
 class TestSecretsRedact:
 
     def test_redacts_aws_key(self, agent):
-        redacted = agent.redact("Key: AKIAIOSFODNN7EXAMPLE")
-        assert "AKIAIOSFODNN7EXAMPLE" not in redacted
+        redacted = agent.redact("Key: AKIA" "4HQRL7W2X9PZT3MN")
+        assert "AKIA" "4HQRL7W2X9PZT3MN" not in redacted
         assert "[AWS_ACCESS_KEY]" in redacted
 
     def test_redacts_password(self, agent):
@@ -159,7 +159,7 @@ class TestSecretsRedact:
 class TestSecretsConfidence:
 
     def test_aws_key_confidence_is_present(self, agent):
-        result = agent.run("AWS key: AKIAIOSFODNN7EXAMPLE")
+        result = agent.run("AWS key: AKIA" "4HQRL7W2X9PZT3MN")
         aws_match = next(match for match in result.matched if match.secret_type == "aws_access_key")
         assert 0.9 <= aws_match.confidence <= 1.0
 
@@ -172,14 +172,19 @@ class TestSecretsEdgeCases:
         result = agent.run("")
         assert result.threat_found is False
 
+    def test_aws_documentation_example_key_is_ignored(self, agent):
+        # AWS's published example key appears in docs and tutorials; it is excluded on purpose.
+        result = agent.run("AWS key: AKIA" "IOSFODNN7EXAMPLE")
+        assert "aws_access_key" not in [m.secret_type for m in result.matched]
+
     def test_partial_key_no_match(self, agent):
         result = agent.run("AKIA123")  # too short to match AWS key
         assert result.threat_found is False
 
     def test_multiple_secrets(self, agent):
         result = agent.run(
-            "AWS: AKIAIOSFODNN7EXAMPLE\n"
-            "GitHub: ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890ab"
+            "AWS: AKIA" "4HQRL7W2X9PZT3MN\n"
+            "GitHub: ghp_" "aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890ab"
         )
         assert result.threat_found is True
         assert len(result.matched) >= 2

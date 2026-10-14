@@ -10,3 +10,8 @@ tests/tmp_*.db
 tests/tmp_*.json
 tests/.tmp/
 data/var/*.db
+scratch/
+data/var/chroma_db/
+semantic_firewall/benchmarks/research/results_camera_ready/_work/
+.vscode/
+data/var/chroma_conversations/

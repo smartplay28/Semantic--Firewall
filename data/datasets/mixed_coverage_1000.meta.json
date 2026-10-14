@@ -1,0 +1,18 @@
+{
+  "n": 1000,
+  "n_label_1": 650,
+  "parts": {
+    "pii": 100,
+    "threat_intel": 50,
+    "benign": 300,
+    "flooding": 50,
+    "injection": 250,
+    "lookalike": 50,
+    "mixed": 80,
+    "secret": 80,
+    "custom_rule": 40
+  },
+  "seed": 0,
+  "flooding_budget_chars": 4000,
+  "description": "Build MIXED-1000: one combined set in which every detector has inputs it is meant to catch (per-detector ablation).\n\nneuralchemy contains no personal data, credentials, oversized inputs, feed signatures or workspace terms, so five of\nthe eight detectors change no decision on it. MIXED-1000 combines, in one set, the neuralchemy prompts with inputs for\nthose detectors and with look-alike benign inputs, so that each detector's contribution can be measured on the same\ntraffic. Labels: label = 1 if the prompt contains anything the firewall should act on; `threats` lists the types.\n\n  part            n    content                                                                    threats\n  benign        300    neuralchemy test benign prompts                                            -\n  lookalike      50    benign inputs resembling the threats (order/ticket numbers, UUIDs and git\n                       hashes, long documents under the 4,000-character budget, localhost URLs,\n                       \"Project Phoenix\", which no rule covers)                                           -\n  injection     250    neuralchemy test attacks                                                   injection\n  pii           100    English ai4privacy texts (synthetic personal data)                         pii\n  secret         80    developer questions with generated credentials in real key formats         secret\n                       (random strings, not real keys)\n  flooding       50    a question after > 4,000 characters of padding (repeated or concatenated)  flooding\n  threat_intel   50    the feed's signatures: cloud-metadata URL probes, chat-delimiter tokens    threat_intel\n  custom_rule    40    requests naming \"Project Zephyr\", restricted by a workspace rule            custom_rule\n  mixed          80    neuralchemy attacks combined with personal data, padding or credentials    2 types\n\nSources are public (neuralchemy test split, ai4privacy, no_robots) or generated from templates; the attack text in\nevery part comes from neuralchemy. Seeded.\nOutput: data/datasets/mixed_coverage_1000.jsonl (+ .meta.json)\n  python build_mixed_set.py\n"
+}

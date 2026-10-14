@@ -1,0 +1,81 @@
+{
+  "reference": "neuralchemy-test-full_all_unresolved-cold",
+  "comparisons": [
+    {
+      "compare": "neuralchemy-test-full_all_unresolved-none",
+      "n_common": 942,
+      "ref_only_correct": 12,
+      "other_only_correct": 4,
+      "chi2": NaN,
+      "p": 0.076812744140625,
+      "test": "exact binomial",
+      "ref": {
+        "precision": 0.957089552238806,
+        "recall": 0.9293478260869565,
+        "f1": 0.9430147058823529,
+        "accuracy": 0.9341825902335457,
+        "fpr": 0.05897435897435897,
+        "fnr": 0.07065217391304347
+      },
+      "other": {
+        "precision": 0.9599236641221374,
+        "recall": 0.9112318840579711,
+        "f1": 0.9349442379182157,
+        "accuracy": 0.9256900212314225,
+        "fpr": 0.05384615384615385,
+        "fnr": 0.08876811594202899
+      },
+      "delta_f1_ci95": [
+        0.0009737142644142161,
+        0.015401059676383132
+      ],
+      "delta_fpr_ci95": [
+        -0.004731288301315155,
+        0.01534625221325989
+      ],
+      "p_holm": 0.076812744140625
+    },
+    {
+      "compare": "neuralchemy-test-full_all_unresolved-warm_frozen-tau0.65",
+      "n_common": 942,
+      "ref_only_correct": 13,
+      "other_only_correct": 28,
+      "chi2": 4.780487804878049,
+      "p": 0.02878396587573838,
+      "test": "chi-square, continuity-corrected",
+      "ref": {
+        "precision": 0.957089552238806,
+        "recall": 0.9293478260869565,
+        "f1": 0.9430147058823529,
+        "accuracy": 0.9341825902335457,
+        "fpr": 0.05897435897435897,
+        "fnr": 0.07065217391304347
+      },
+      "other": {
+        "precision": 0.9422066549912435,
+        "recall": 0.9746376811594203,
+        "f1": 0.9581478183437222,
+        "accuracy": 0.9501061571125266,
+        "fpr": 0.08461538461538462,
+        "fnr": 0.025362318840579712
+      },
+      "delta_f1_ci95": [
+        -0.026518530666677732,
+        -0.0040661987101041335
+      ],
+      "delta_fpr_ci95": [
+        -0.04558203548697379,
+        -0.007317073170731707
+      ],
+      "p_holm": 0.05756793175147676
+    }
+  ],
+  "meta": {
+    "timestamp_utc": "2026-10-06T03:21:07.512279+00:00",
+    "python": "3.13.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 18,
+    "code_fingerprint": "a36cc7e46060ba60"
+  }
+}

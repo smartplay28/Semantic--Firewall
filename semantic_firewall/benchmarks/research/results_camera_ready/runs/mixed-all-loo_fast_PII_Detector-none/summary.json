@@ -1,0 +1,95 @@
+{
+  "n": 1000,
+  "n_attack": 650,
+  "tp": 355,
+  "fp": 33,
+  "tn": 317,
+  "fn": 295,
+  "precision": 0.9149484536082474,
+  "recall": 0.5461538461538461,
+  "f1": 0.6840077071290944,
+  "accuracy": 0.672,
+  "fpr": 0.09428571428571429,
+  "fnr": 0.45384615384615384,
+  "f1_ci95": [
+    0.6506465203067144,
+    0.7137332599997046
+  ],
+  "fpr_ci95": [
+    0.06406579081459339,
+    0.12672374782670828
+  ],
+  "recall_ci95": [
+    0.5077875573228071,
+    0.5823084924697541
+  ],
+  "latency_mean_ms": 101.189071,
+  "latency_p50_ms": 70.9545,
+  "latency_p95_ms": 266.83704999999986,
+  "latency_p99_ms": 383.2729699999998,
+  "resolution_stage_counts": {
+    "deterministic": 1000
+  },
+  "llm_call_rate": 0.0,
+  "n_llm_failed": 0,
+  "n_errors": 0,
+  "config": {
+    "name": "loo_fast:PII Detector",
+    "description": "All fast layers (no LLM) without the PII Detector.",
+    "uses_llm": false
+  },
+  "protocol": {
+    "dataset": "mixed",
+    "split": "all",
+    "cache": "none",
+    "seeded_entries": 0,
+    "cache_size_after": 0,
+    "cache_stats": {
+      "threat_queries": 0,
+      "threat_hits": 0,
+      "allowlist_queries": 0,
+      "allowlist_hits": 0,
+      "writes": 0,
+      "writes_rejected": 0,
+      "evictions": 0,
+      "writes_rejected_overlap": 0,
+      "confirmations": 0,
+      "promotions": 0,
+      "expirations": 0,
+      "revalidations": 0,
+      "revalidation_evictions": 0
+    },
+    "workers": 4
+  },
+  "env": {
+    "SEMANTIC_FIREWALL_CACHE_TTL_SEC": "0",
+    "SEMANTIC_FIREWALL_AUDIT_ENABLED": "0",
+    "SEMANTIC_FIREWALL_DISABLE_LLM_DETECTORS": "1",
+    "SEMANTIC_FIREWALL_LLM_GATE_ENABLED": "1",
+    "SEMANTIC_FIREWALL_LLM_GATE_THRESHOLD": "1.0",
+    "SEMANTIC_FIREWALL_EARLY_EXIT_ON_BLOCK": "1",
+    "SEMANTIC_FIREWALL_DISABLED_AGENTS": "PII Detector",
+    "SEMANTIC_FIREWALL_SEMANTIC_CACHE_ENABLED": "0",
+    "SEMANTIC_FIREWALL_CACHE_SIM_THRESHOLD": "0.90",
+    "SEMANTIC_FIREWALL_CACHE_WRITEBACK": "1",
+    "SEMANTIC_FIREWALL_CACHE_WRITEBACK_REQUIRE_LLM": "1",
+    "SEMANTIC_FIREWALL_CACHE_WRITEBACK_MIN_CONFIDENCE": "0.85",
+    "SEMANTIC_FIREWALL_LLM_AGENT_REGEX_ENABLED": "1",
+    "SEMANTIC_FIREWALL_ENSEMBLE_ENABLED": "1",
+    "SEMANTIC_FIREWALL_ALLOWLIST_MODE": "skip_llm",
+    "SEMANTIC_FIREWALL_OPENROUTER_PROVIDERS": "DeepInfra,Parasail,AkashML",
+    "SEMANTIC_FIREWALL_LLM_JSON_MODE": "1",
+    "SEMANTIC_FIREWALL_AGENT_TIMEOUT_INJECTION_SEC": "90",
+    "SEMANTIC_FIREWALL_AGENT_TIMEOUT_UNSAFE_CONTENT_SEC": "90",
+    "SEMANTIC_FIREWALL_LLM_TIMEOUT_SEC": "40",
+    "SEMANTIC_FIREWALL_SEMANTIC_CACHE_PATH": "C:\\Users\\Aksha\\OneDrive\\Desktop\\Semantic-Firewall-main\\Semantic-Firewall-main\\semantic_firewall\\benchmarks\\research\\results_camera_ready\\_work\\caches\\mixed-all-loo_fast_PII_Detector-none"
+  },
+  "meta": {
+    "timestamp_utc": "2026-10-12T07:39:28.650572+00:00",
+    "python": "3.13.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 18,
+    "code_fingerprint": "f5984acd029a4f67"
+  }
+}

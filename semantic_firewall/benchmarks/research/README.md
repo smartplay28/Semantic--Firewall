@@ -1,57 +1,87 @@
-﻿# Official Research Experiments & Results
+# Research evaluation (ICISS 2026 camera-ready)
 
-This folder contains the experiment scripts and outputs for the Semantic Firewall paper.
+`camera_ready/` holds every script behind the paper's numbers, and `results_camera_ready/` holds the raw
+per-prompt outputs they wrote. Every table value can be recomputed from these records; see
+[`results_camera_ready/README.md`](results_camera_ready/README.md) for which run backs which table.
 
-## Folder Structure
+## Protocol
 
-```text
-semantic_firewall/benchmarks/research/
-  README.md
-  run_all_experiments.py
-  experiments/
-    01_baseline_comparison.py
-    02_ablation_study.py
-    03_latency_benchmark.py
-    04_pii_scaled.py
-    05_unsafe_scaled.py
-    06_red_team_extended.py
-    07_llm_gate_efficiency.py
-  results/
-    baselines/
-    ablation/
-    latency/
-    pii/
-    unsafe/
-    red_team/
-    llm_gate/
-    tables/
-    figures/
-```
+- **Data:** neuralchemy/Prompt-injection-dataset (core) with its official splits: train 4,391 / validation 941 /
+  test 942. The splits share no `group_id` and no identical text.
+- **Cache:** "warm" means the semantic cache is seeded with **train-split attacks only** and then frozen, so
+  nothing from validation or test enters it. "Cold" starts empty and writes back during the run.
+- **Tuning:** the cache threshold τ and the ensemble threshold θ are chosen on validation (τ = 0.65, θ = 3.5);
+  the test split is evaluated once.
+- **LLM gate:** `meta-llama/llama-3.3-70b-instruct` via OpenRouter, temperature 0, JSON mode. Accuracy runs use
+  the hosts DeepInfra, Parasail and AkashML. The latency runs use Groq.
+- **Failures:** a failed LLM call is fail-closed (FLAG) and counted in `llm_failed`; it is never treated as benign.
+- **Provenance:** each `summary.json` stores a fingerprint of the detector/orchestrator code and the run metadata.
 
-## How to Run
+## Scripts
 
-### Run everything
+| Script | Purpose | Paper |
+|---|---|---|
+| `run_system.py` | One firewall configuration on one dataset split (`--config`, `--cache`, `--tau`, `--env`). Resumable. | Tables 2–4 |
+| `derive_warm.py` | Warm-cache run at τ, derived exactly from a no-cache run plus nearest-train-attack similarity | Tables 2, 4 (C8) |
+| `tune_threshold.py` | Exact τ × θ sweep from a no-cache run (any dataset) | Table 3 |
+| `run_baselines.py` | Zero-shot LLMs (OpenRouter), Llama Guard 4, local classifiers (DeBERTa-v3, PIGuard) | Table 2 |
+| `significance.py` | Paired McNemar tests with Holm–Bonferroni correction | Sec. 5.1, 5.3 |
+| `final_tables.py` | Rebuilds the table numbers from raw records | Tables 2, 3 |
+| `latency_report.py` | p50/p95/p99, per-path and per-stage latency, Eq. 8 L_eff, 1–10% attack prevalence | Sec. 5.1, Cost |
+| `novel_subset.py` | Results by similarity to the nearest cached train attack (memorisation check) | Sec. 5.2 |
+| `pii_eval.py` | PII detector on ai4privacy (209,261 rows; `--part dev/heldout`, `--profile ai4privacy`) | Table 2c |
+| `build_ood_set.py` | Builds OOD-500 (`data/datasets/ood_curated_500.jsonl`) | Table 3b |
+| `multiturn_eval.py` | Multi-turn sessions: SafeMTData attacks + benign no_robots chats (held-out 100+100, dev 50+50) | Table 2c |
+| `build_multiturn_examples.py` | Worked examples for the Session Judge (never from the held-out part) | — |
+| `multiturn_memory.py` | Conversation-memory seeds (SafeMTData outside dev/held-out, goal de-dup) and dev threshold selection | Table 2c |
+| `multiturn_breakdown.py` | Per-turn vs Session Judge vs conversation memory, exactly from one run, with McNemar tests | Sec. 5.1 |
+| `levenshtein_study.py` | Levenshtein keyword-repair study on natural and obfuscated attacks | Sec. 3.3 |
+| `common.py` | Shared loaders, configurations, firewall builder, metrics | — |
+
+Not yet used in the paper: `cache_overlap.py`, `cache_robustness.py` (error propagation, cache poisoning,
+allowlist abuse, cache growth), `adaptive_attack.py` (adaptive attackers), `prevalence_cost.py` (token cost
+model), and the `llm_agents_only` / `loo:<detector>` configurations of `run_system.py`.
+
+## Reproducing the main results
+
 ```bash
-python semantic_firewall/benchmarks/research/run_all_experiments.py
+cd semantic_firewall/benchmarks/research/camera_ready
+export HF_DATASETS_OFFLINE=0            # first run downloads the datasets
+# 1. validation, no cache -> choose tau and theta
+python run_system.py --config full_all_unresolved --split validation --cache none
+python tune_threshold.py --dataset neuralchemy --split validation \
+    --downstream-run neuralchemy-validation-full_all_unresolved-none
+# 2. test, no cache, then the warm-cache result at the selected tau
+python run_system.py --config full_all_unresolved --split test --cache none
+python derive_warm.py --source neuralchemy-test-full_all_unresolved-none --dataset neuralchemy --split test --tau 0.65
+# 3. baselines and significance
+python run_baselines.py --kind llm --model openai/gpt-4o
+python run_baselines.py --kind hf --model protectai/deberta-v3-base-prompt-injection-v2
+python significance.py --reference neuralchemy-test-full_all_unresolved-warm_frozen-tau0.65 \
+    --compare neuralchemy-test-baseline-llm-openai__gpt-4o
+# 4. latency (sequential, first 10 prompts are warm-up)
+python run_system.py --config full_all_unresolved --split test --cache warm_frozen --tau 0.65 \
+    --max-samples 210 --workers 1 --run-name neuralchemy-test-latency-groq \
+    --env SEMANTIC_FIREWALL_OPENROUTER_PROVIDERS=Groq
+python latency_report.py --latency-run neuralchemy-test-latency-groq \
+    --paths-run neuralchemy-test-full_all_unresolved-warm_frozen-tau0.65
 ```
 
-### Run individual experiments
+Multi-turn (Table 2c): dev run, memory threshold on dev, then the held-out part once:
+
 ```bash
-# Fast experiments (no API calls)
-python semantic_firewall/benchmarks/research/experiments/03_latency_benchmark.py
-python semantic_firewall/benchmarks/research/experiments/04_pii_scaled.py
-
-# API-dependent experiments (rate-limited)
-python semantic_firewall/benchmarks/research/experiments/01_baseline_comparison.py
-python semantic_firewall/benchmarks/research/experiments/05_unsafe_scaled.py
-python semantic_firewall/benchmarks/research/experiments/06_red_team_extended.py
+python multiturn_eval.py --part dev --config full_all_unresolved --cache warm_frozen --tau 0.65 \
+    --env SESSION_WINDOW_TURNS=20 CONVERSATION_INTENT=1 --tag e2-fullwindow-goal
+python multiturn_memory.py tune --run multiturn-dev-full_all_unresolved-warm_frozen-e2-fullwindow-goal
+python multiturn_eval.py --part heldout --config full_all_unresolved --cache warm_frozen --tau 0.65 \
+    --env SESSION_WINDOW_TURNS=20 CONVERSATION_INTENT=1 --memory --workers 3 --tag final-memory
+python multiturn_breakdown.py --run multiturn-heldout-full_all_unresolved-warm_frozen-final-memory
 ```
 
-## Results for Paper
+Ablation rows use `--config` `injection_llm_only` (C1), `regex_only` (C2), `cache_only` (C3), `detectors_only`
+(C4), `regex_cache` (C5), `deterministic_only` (C6), `fast_layers` (C7) and `full_all_unresolved` with
+`--cache cold` (C9). Cross-dataset runs use `--dataset deepset --split all`, `--dataset beavertails`,
+`--dataset ood500 --split all` and `--dataset no_robots`.
 
-After running, the key paper artifacts will be:
-- `semantic_firewall/benchmarks/research/results/tables/main_comparison.csv`
-- `semantic_firewall/benchmarks/research/results/tables/ablation.csv`
-- `semantic_firewall/benchmarks/research/results/tables/latency_summary.csv`
-- `semantic_firewall/benchmarks/research/results/tables/llm_gate_efficiency.csv`
-- `semantic_firewall/benchmarks/research/results/figures/`
+API-dependent runs need `OPENROUTER_API_KEY` in the repository's `.env` (git-ignored). The test suite writes
+into `config/*.json`; restore them with `git checkout -- config/` after running it.

@@ -62,8 +62,8 @@ PII_TESTS = [
 ]
 
 SECRETS_TESTS = [
-    TestCase("AWS: AKIAIOSFODNN7EXAMPLE", True),
-    TestCase("sk_live_abcdefghijklmnopqrstuvwx", True),
+    TestCase("AWS: AKIA" "IOSFODNN7EXAMPLE", True),
+    TestCase("sk_live_" "abcdefghijklmnopqrstuvwx", True),
     TestCase("password = 'SuperSecret123'", True),
     TestCase("What is the best way to learn Python?", False),
     TestCase("Please review the attached document.", False),

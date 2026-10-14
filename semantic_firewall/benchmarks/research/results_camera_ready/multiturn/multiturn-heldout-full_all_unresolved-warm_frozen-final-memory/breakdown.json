@@ -1,0 +1,71 @@
+{
+  "run": "multiturn-heldout-full_all_unresolved-warm_frozen-final-memory",
+  "n_sessions": 200,
+  "systems": {
+    "per_turn": {
+      "recall": 0.06,
+      "fpr": 0.03,
+      "precision": 0.6666666666666666,
+      "f1": 0.11009174311926605,
+      "tp": 6,
+      "fp": 3
+    },
+    "judge_no_memory": {
+      "recall": 0.5,
+      "fpr": 0.04,
+      "precision": 0.9259259259259259,
+      "f1": 0.6493506493506493,
+      "tp": 50,
+      "fp": 4
+    },
+    "full": {
+      "recall": 0.89,
+      "fpr": 0.06,
+      "precision": 0.9368421052631579,
+      "f1": 0.9128205128205129,
+      "tp": 89,
+      "fp": 6
+    }
+  },
+  "mcnemar": {
+    "judge_no_memory_vs_per_turn": {
+      "b_only_correct": 44,
+      "a_only_correct": 1,
+      "chi2": 39.2,
+      "p": 3.8254023259386303e-10,
+      "test": "chi-square, continuity-corrected"
+    },
+    "full_vs_judge_no_memory": {
+      "b_only_correct": 39,
+      "a_only_correct": 2,
+      "chi2": 31.609756097560975,
+      "p": 1.8848030043241225e-08,
+      "test": "chi-square, continuity-corrected"
+    },
+    "full_vs_per_turn": {
+      "b_only_correct": 83,
+      "a_only_correct": 3,
+      "chi2": 72.56976744186046,
+      "p": 1.6123016090691065e-17,
+      "test": "chi-square, continuity-corrected"
+    }
+  },
+  "first_detection_agent_attacks": {
+    "Conversation Memory": 85,
+    "Multi-turn Unsafe Content Detector": 14
+  },
+  "first_detection_agent_benign": {
+    "Conversation Memory": 2,
+    "Semantic Cache": 2,
+    "PII Detector": 1,
+    "Multi-turn Unsafe Content Detector": 1
+  },
+  "meta": {
+    "timestamp_utc": "2026-10-07T21:34:36.843983+00:00",
+    "python": "3.13.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 18,
+    "code_fingerprint": "ba0c2b7c8207b142"
+  }
+}

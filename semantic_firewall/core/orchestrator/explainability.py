@@ -477,7 +477,7 @@ class ExplainabilityGenerator:
             f"**Generated:** {report.timestamp}",
             f"**Decision:** `{report.overall_action}`",
             f"**Severity:** {report.severity}",
-            f"**Risk Score:** {report.risk_score:.1f}/100 ({report.risk_level})",
+            f"**Risk Score:** {report.risk_score:.1f}/100",
             f"**Confidence:** {report.confidence_level}",
             "",
             "## Executive Summary",

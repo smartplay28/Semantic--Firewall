@@ -1,0 +1,266 @@
+{
+  "dataset": "data/datasets/mixed_coverage_1000.jsonl",
+  "tau": 0.65,
+  "rows": [
+    {
+      "removed": "none",
+      "reference": "C8",
+      "f1": 92.35,
+      "fpr": 19.43,
+      "recall": 94.77,
+      "precision": 90.06,
+      "changed": null,
+      "per_threat_recall": {
+        "injection": 98.2,
+        "pii": 78.5,
+        "secret": 100.0,
+        "flooding": 100.0,
+        "threat_intel": 100.0,
+        "custom_rule": 100.0
+      }
+    },
+    {
+      "removed": "Injection Detector",
+      "reference": "C8",
+      "f1": 91.43,
+      "fpr": 13.43,
+      "recall": 90.31,
+      "precision": 92.59,
+      "changed": 50,
+      "flags_attacks": 278,
+      "flags_benign": 32,
+      "flags_by_threat": {
+        "injection": 234,
+        "pii": 56,
+        "secret": 16,
+        "flooding": 11,
+        "threat_intel": 0,
+        "custom_rule": 0
+      },
+      "per_threat_recall": {
+        "injection": 91.8,
+        "pii": 72.3,
+        "secret": 100.0,
+        "flooding": 100.0,
+        "threat_intel": 100.0,
+        "custom_rule": 100.0
+      }
+    },
+    {
+      "removed": "Unsafe Content Detector",
+      "reference": "C8",
+      "f1": 91.96,
+      "fpr": 17.71,
+      "recall": 93.23,
+      "precision": 90.72,
+      "changed": 16,
+      "flags_attacks": 111,
+      "flags_benign": 16,
+      "flags_by_threat": {
+        "injection": 82,
+        "pii": 46,
+        "secret": 0,
+        "flooding": 0,
+        "threat_intel": 0,
+        "custom_rule": 0
+      },
+      "per_threat_recall": {
+        "injection": 96.7,
+        "pii": 74.6,
+        "secret": 100.0,
+        "flooding": 100.0,
+        "threat_intel": 100.0,
+        "custom_rule": 100.0
+      }
+    },
+    {
+      "removed": "none",
+      "reference": "C7",
+      "f1": 89.22,
+      "fpr": 15.43,
+      "recall": 87.23,
+      "precision": 91.3,
+      "changed": null,
+      "per_threat_recall": {
+        "injection": 88.5,
+        "pii": 65.4,
+        "secret": 100.0,
+        "flooding": 100.0,
+        "threat_intel": 100.0,
+        "custom_rule": 100.0
+      }
+    },
+    {
+      "removed": "Abuse Detector",
+      "reference": "C7",
+      "f1": 88.78,
+      "fpr": 15.43,
+      "recall": 86.46,
+      "precision": 91.23,
+      "changed": 5,
+      "flags_attacks": 154,
+      "flags_benign": 10,
+      "flags_by_threat": {
+        "injection": 66,
+        "pii": 2,
+        "secret": 5,
+        "flooding": 50,
+        "threat_intel": 50,
+        "custom_rule": 0
+      },
+      "per_threat_recall": {
+        "injection": 87.0,
+        "pii": 65.4,
+        "secret": 100.0,
+        "flooding": 100.0,
+        "threat_intel": 100.0,
+        "custom_rule": 100.0
+      }
+    },
+    {
+      "removed": "PII Detector",
+      "reference": "C7",
+      "f1": 83.65,
+      "fpr": 12.57,
+      "recall": 76.77,
+      "precision": 91.9,
+      "changed": 78,
+      "flags_attacks": 155,
+      "flags_benign": 20,
+      "flags_by_threat": {
+        "injection": 48,
+        "pii": 82,
+        "secret": 14,
+        "flooding": 29,
+        "threat_intel": 27,
+        "custom_rule": 0
+      },
+      "per_threat_recall": {
+        "injection": 83.6,
+        "pii": 13.1,
+        "secret": 100.0,
+        "flooding": 100.0,
+        "threat_intel": 100.0,
+        "custom_rule": 100.0
+      }
+    },
+    {
+      "removed": "Secrets Detector",
+      "reference": "C7",
+      "f1": 82.67,
+      "fpr": 15.43,
+      "recall": 76.31,
+      "precision": 90.18,
+      "changed": 71,
+      "flags_attacks": 105,
+      "flags_benign": 0,
+      "flags_by_threat": {
+        "injection": 25,
+        "pii": 0,
+        "secret": 105,
+        "flooding": 0,
+        "threat_intel": 0,
+        "custom_rule": 0
+      },
+      "per_threat_recall": {
+        "injection": 85.2,
+        "pii": 65.4,
+        "secret": 32.4,
+        "flooding": 100.0,
+        "threat_intel": 100.0,
+        "custom_rule": 100.0
+      }
+    },
+    {
+      "removed": "Threat Intel Detector",
+      "reference": "C7",
+      "f1": 89.22,
+      "fpr": 15.43,
+      "recall": 87.23,
+      "precision": 91.3,
+      "changed": 0,
+      "flags_attacks": 58,
+      "flags_benign": 0,
+      "flags_by_threat": {
+        "injection": 8,
+        "pii": 0,
+        "secret": 1,
+        "flooding": 1,
+        "threat_intel": 50,
+        "custom_rule": 0
+      },
+      "per_threat_recall": {
+        "injection": 88.5,
+        "pii": 65.4,
+        "secret": 100.0,
+        "flooding": 100.0,
+        "threat_intel": 100.0,
+        "custom_rule": 100.0
+      }
+    },
+    {
+      "removed": "Custom Rules Detector",
+      "reference": "C7",
+      "f1": 85.62,
+      "fpr": 15.43,
+      "recall": 81.08,
+      "precision": 90.71,
+      "changed": 40,
+      "flags_attacks": 40,
+      "flags_benign": 0,
+      "flags_by_threat": {
+        "injection": 0,
+        "pii": 0,
+        "secret": 0,
+        "flooding": 0,
+        "threat_intel": 0,
+        "custom_rule": 40
+      },
+      "per_threat_recall": {
+        "injection": 88.5,
+        "pii": 65.4,
+        "secret": 100.0,
+        "flooding": 100.0,
+        "threat_intel": 100.0,
+        "custom_rule": 0.0
+      }
+    },
+    {
+      "removed": "Context Flooding Detector",
+      "reference": "C7",
+      "f1": 88.61,
+      "fpr": 15.43,
+      "recall": 86.15,
+      "precision": 91.21,
+      "changed": 7,
+      "flags_attacks": 76,
+      "flags_benign": 0,
+      "flags_by_threat": {
+        "injection": 26,
+        "pii": 0,
+        "secret": 0,
+        "flooding": 75,
+        "threat_intel": 0,
+        "custom_rule": 0
+      },
+      "per_threat_recall": {
+        "injection": 87.6,
+        "pii": 65.4,
+        "secret": 100.0,
+        "flooding": 90.7,
+        "threat_intel": 100.0,
+        "custom_rule": 100.0
+      }
+    }
+  ],
+  "threat_counts": {
+    "injection": 330,
+    "pii": 130,
+    "secret": 105,
+    "flooding": 75,
+    "threat_intel": 50,
+    "custom_rule": 40
+  },
+  "n": 1000,
+  "n_label_1": 650
+}

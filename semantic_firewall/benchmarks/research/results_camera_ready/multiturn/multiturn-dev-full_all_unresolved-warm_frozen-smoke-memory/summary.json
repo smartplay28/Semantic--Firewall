@@ -1,0 +1,81 @@
+{
+  "part": "dev",
+  "config": "full_all_unresolved",
+  "cache_protocol": "warm_frozen",
+  "seeded_cache": 2650,
+  "session_judge": true,
+  "conversation_memory": {
+    "seed_conversations_before_dedup": 1830,
+    "goals_removed": 10,
+    "goal_dedup_cosine": 0.8,
+    "seed_conversations": 1813,
+    "seed_prefixes": 7393,
+    "sources": [
+      "SafeMTData/SafeMTData:SafeMTData_1K",
+      "SafeMTData/SafeMTData:Attack_600 (non-eval queries)"
+    ],
+    "seeded": 7393,
+    "tau": 0.6
+  },
+  "sessions_attack": 4,
+  "sessions_benign": 0,
+  "tp": 3,
+  "fn": 1,
+  "fp": 0,
+  "tn": 0,
+  "session_recall": 0.75,
+  "session_fpr": 0.0,
+  "precision": 1.0,
+  "f1": 0.8571428571428571,
+  "mean_first_detection_turn": 3.0,
+  "mean_turns_attack": 5.0,
+  "detected_by_category": {
+    "chemical_biological": 1,
+    "illegal": 1,
+    "misinformation_disinformation": 1
+  },
+  "attacks_by_category": {
+    "chemical_biological": 1,
+    "illegal": 2,
+    "misinformation_disinformation": 1
+  },
+  "llm_calls": 20,
+  "sessions_with_llm_failure": 0,
+  "benign_flag_reasons": {},
+  "env": {
+    "SEMANTIC_FIREWALL_CACHE_TTL_SEC": "0",
+    "SEMANTIC_FIREWALL_AUDIT_ENABLED": "0",
+    "SEMANTIC_FIREWALL_DISABLE_LLM_DETECTORS": "0",
+    "SEMANTIC_FIREWALL_LLM_GATE_ENABLED": "0",
+    "SEMANTIC_FIREWALL_LLM_GATE_THRESHOLD": "1.0",
+    "SEMANTIC_FIREWALL_EARLY_EXIT_ON_BLOCK": "1",
+    "SEMANTIC_FIREWALL_DISABLED_AGENTS": "",
+    "SEMANTIC_FIREWALL_SEMANTIC_CACHE_ENABLED": "1",
+    "SEMANTIC_FIREWALL_CACHE_SIM_THRESHOLD": "0.65",
+    "SEMANTIC_FIREWALL_CACHE_WRITEBACK": "0",
+    "SEMANTIC_FIREWALL_CACHE_WRITEBACK_REQUIRE_LLM": "1",
+    "SEMANTIC_FIREWALL_CACHE_WRITEBACK_MIN_CONFIDENCE": "0.85",
+    "SEMANTIC_FIREWALL_LLM_AGENT_REGEX_ENABLED": "1",
+    "SEMANTIC_FIREWALL_ENSEMBLE_ENABLED": "1",
+    "SEMANTIC_FIREWALL_ALLOWLIST_MODE": "skip_llm",
+    "SEMANTIC_FIREWALL_OPENROUTER_PROVIDERS": "DeepInfra,Parasail,AkashML",
+    "SEMANTIC_FIREWALL_LLM_JSON_MODE": "1",
+    "SEMANTIC_FIREWALL_AGENT_TIMEOUT_INJECTION_SEC": "90",
+    "SEMANTIC_FIREWALL_AGENT_TIMEOUT_UNSAFE_CONTENT_SEC": "90",
+    "SEMANTIC_FIREWALL_LLM_TIMEOUT_SEC": "40",
+    "SEMANTIC_FIREWALL_SESSION_WINDOW_TURNS": "20",
+    "SEMANTIC_FIREWALL_CONVERSATION_INTENT": "1",
+    "SEMANTIC_FIREWALL_SESSION_MEMORY_ENABLED": "1",
+    "SEMANTIC_FIREWALL_SESSION_MEMORY_THRESHOLD": "0.6",
+    "SEMANTIC_FIREWALL_SESSION_MEMORY_PATH": "C:\\Users\\Aksha\\OneDrive\\Desktop\\Semantic-Firewall-main\\Semantic-Firewall-main\\semantic_firewall\\benchmarks\\research\\results_camera_ready\\_work\\caches\\multiturn-dev-full_all_unresolved-warm_frozen-smoke-memory-conversations",
+    "SEMANTIC_FIREWALL_SEMANTIC_CACHE_PATH": "C:\\Users\\Aksha\\OneDrive\\Desktop\\Semantic-Firewall-main\\Semantic-Firewall-main\\semantic_firewall\\benchmarks\\research\\results_camera_ready\\_work\\caches\\multiturn-dev-full_all_unresolved-warm_frozen-smoke-memory"
+  },
+  "meta": {
+    "timestamp_utc": "2026-10-07T20:21:34.404214+00:00",
+    "python": "3.13.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 18,
+    "code_fingerprint": "ba0c2b7c8207b142"
+  }
+}
