@@ -54,8 +54,8 @@ see the [research README](semantic_firewall/benchmarks/research/README.md) for t
 ## Installation
 
 ```bash
-git clone https://github.com/NCRL-IIITB/Semantic-Firewall.git
-cd Semantic-Firewall
+git clone https://github.com/NCRL-IIITB/Semantic_Firewall.git
+cd Semantic_Firewall
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"            # add ",research" for the evaluation scripts
 
